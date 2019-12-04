@@ -1,0 +1,123 @@
+// package gossiper
+
+// import (
+// 	"fmt"
+// 	"math/rand"
+// 	"strings"
+
+// 	core "github.com/ksei/Peerster/Core"
+// )
+
+// func (g *Gossiper) handleSimpleMessage(packet core.GossipPacket) {
+// 	message := packet.Simple
+// 	fmt.Println("SIMPLE MESSAGE origin", message.OriginalName, "from", message.RelayPeerAddr, "contents", message.Contents)
+// 	g.printPeers()
+// 	go g.forwardToPeers(*packet.Simple)
+// }
+
+// func (g *Gossiper) handleStatusPacket(packet core.GossipPacket, sender string) {
+// 	// printStatus(sender, packet.Status.Want)
+// 	g.ackLocker.RLock()
+// 	waiting, ok := g.awaitingAcknowledgementFrom[sender]
+// 	waiting = ok && waiting
+// 	g.ackLocker.RUnlock()
+// 	if waiting {
+// 		g.acknowledgementChannel <- &core.InternalPacket{Packet: packet, Sender: sender}
+// 	} else if !g.vectorClock.isInSyncWith(*packet.Status) {
+// 		go g.syncStatuses(*packet.Status, sender)
+// 	}
+// }
+
+// func (g *Gossiper) handleRumourMessage(packet core.GossipPacket, sender string) {
+// 	rumour := packet.Rumor
+// 	isRouteRumour := len(rumour.Text) == 0
+// 	if !g.messageExists(*rumour) {
+// 		if g.vectorClock.getMaxIdFrom(rumour.Origin) < rumour.ID {
+// 			g.updateDSDV(rumour.Origin, sender, isRouteRumour)
+// 		}
+// 		g.vClockOutgoingChannel <- rumour
+// 		g.GUImessageChannel <- &core.InternalPacket{Packet: packet, Sender: sender}
+// 		go g.startMongering(*packet.Rumor, RandomPeer(g, sender))
+// 		if strings.Compare(sender, g.address.String()) != 0 {
+// 			fmt.Println("RUMOR origin", rumour.Origin, "from", sender, "ID", rumour.ID, "contents", rumour.Text)
+// 		}
+// 	}
+// 	if strings.Compare(sender, g.address.String()) != 0 {
+// 		go g.acknowledge(sender)
+// 	}
+// }
+
+// func (g *Gossiper) handlePrivateMessage(packet core.GossipPacket) {
+// 	private := packet.Private
+// 	found, destinationIP := g.retrieveDestinationRoute(private.Destination)
+// 	switch found {
+// 	case -1:
+// 		return
+// 	case 0:
+// 		g.GUImessageChannel <- &core.InternalPacket{Packet: packet}
+// 		fmt.Println("PRIVATE origin", private.Origin, "hop-limit", private.HopLimit, "contents", private.Text)
+// 	default:
+// 		if private.HopLimit == 0 {
+// 			return
+// 		}
+// 		private.HopLimit = private.HopLimit - 1
+// 		go g.sendPacketToPeer(core.GossipPacket{Private: private}, destinationIP)
+// 	}
+// }
+
+// func (g *Gossiper) handleDataRequest(packet core.GossipPacket) {
+// 	dataRequestPacket := packet.DataRequest
+// 	found, destinationIP := g.retrieveDestinationRoute(dataRequestPacket.Destination)
+// 	switch found {
+// 	case -1:
+// 		return
+// 	case 0:
+// 		go g.fileHandler.ProcessDataRequest(dataRequestPacket)
+// 	default:
+// 		if dataRequestPacket.HopLimit == 0 {
+// 			return
+// 		}
+// 		dataRequestPacket.HopLimit--
+// 		go g.sendPacketToPeer(core.GossipPacket{DataRequest: dataRequestPacket}, destinationIP)
+// 	}
+// }
+
+// func (g *Gossiper) handleDataReply(packet core.GossipPacket) {
+// 	dataReplyPacket := packet.DataReply
+// 	found, destinationIP := g.retrieveDestinationRoute(dataReplyPacket.Destination)
+// 	switch found {
+// 	case -1:
+// 		return
+// 	case 0:
+// 		go g.fileHandler.ProcessDataReply(dataReplyPacket)
+// 	default:
+// 		if dataReplyPacket.HopLimit == 0 {
+// 			return
+// 		}
+// 		dataReplyPacket.HopLimit--
+// 		go g.sendPacketToPeer(core.GossipPacket{DataReply: dataReplyPacket}, destinationIP)
+// 	}
+// }
+
+// //RandomPeer to be generated
+// func RandomPeer(g *Gossiper, sender string) string {
+// 	peerList := g.GetPeers()
+// 	totalPeers := len(peerList) //Preventing infinite loop in case of only one peer
+// 	randPeer := peerList[rand.Intn(totalPeers)]
+// 	for keepSearching := true; keepSearching; keepSearching = (strings.Compare(randPeer, sender) == 0 && totalPeers != 1) {
+// 		randPeer = peerList[rand.Intn(totalPeers)]
+// 	}
+// 	return randPeer
+// }
+
+// func (g *Gossiper) printPeers() {
+// 	fmt.Print("PEERS ")
+// 	peers := g.GetPeers()
+// 	for i := 0; i < len(peers); i++ {
+// 		fmt.Printf(peers[i])
+// 		if i != len(peers)-1 {
+// 			fmt.Print(",")
+// 		}
+// 	}
+// 	fmt.Println("")
+// }

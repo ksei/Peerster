@@ -1,0 +1,89 @@
+// package mongering
+
+// import (
+// 	core "github.com/ksei/Peerster/Core"
+// )
+
+// type mongeringAdapter interface {
+// 	GetVectorClock() *core.VectorClock
+// 	Acknowledge(peer string)
+// 	GetContent(id uint32, content core.Stackable, origin string) core.Stackable
+// 	GenerateFormatedStatusPacket(status *core.StatusPacket) *core.GossipPacket
+// 	SendPacketToPeer(gossipPacket core.GossipPacket, peer string)
+// 	GetContext() *core.Context
+// }
+// type MessageMongeringAdapter struct {
+// 	ctx *core.Context
+// }
+
+// func CreateMessageMongeringAdapter(cntx *core.Context) *MessageMongeringAdapter {
+// 	return &MessageMongeringAdapter{ctx: cntx}
+// }
+
+// func (mma *MessageMongeringAdapter) GetVectorClock() *core.VectorClock {
+// 	return &mma.ctx.VectorClock
+// }
+
+// func (mma *MessageMongeringAdapter) Acknowledge(peer string) {
+// 	statusPacket := &core.StatusPacket{Want: mma.GetVectorClock().GetCurrentStatus()}
+// 	gossipPacket := &core.GossipPacket{Status: statusPacket}
+// 	go mma.ctx.SendPacketToPeer(*gossipPacket, peer)
+// }
+
+// func (mma *MessageMongeringAdapter) GetContent(id uint32, content core.Stackable, origin string) core.Stackable {
+// 	rumour := core.NewRumourMessage(id, content.GetValue().(string), origin)
+// 	return rumour
+// }
+
+// func (mma *MessageMongeringAdapter) GenerateFormatedStatusPacket(statusPacket *core.StatusPacket) *core.GossipPacket {
+// 	return &core.GossipPacket{
+// 		Status: statusPacket,
+// 	}
+// }
+
+// func (mma *MessageMongeringAdapter) SendPacketToPeer(gossipPacket core.GossipPacket, peer string) {
+// 	go mma.ctx.SendPacketToPeer(gossipPacket, peer)
+// }
+
+// func (mma *MessageMongeringAdapter) GetContext() *core.Context {
+// 	return mma.ctx
+// }
+
+// type TLCMongeringAdapter struct {
+// 	ctx *core.Context
+// }
+
+// func CreateTLCMongeringAdapter(cntx *core.Context) *TLCMongeringAdapter {
+// 	return &TLCMongeringAdapter{ctx: cntx}
+// }
+
+// func (tlcma *TLCMongeringAdapter) GetVectorClock() *core.VectorClock {
+// 	return &tlcma.ctx.VectorClock
+// }
+
+// func (tlcma *TLCMongeringAdapter) Acknowledge(peer string) {
+// 	statusPacket := &core.StatusPacket{Want: tlcma.GetVectorClock().GetCurrentStatus()}
+// 	tlcPacket := &core.TLCMessage{VectorClock: statusPacket}
+// 	gossipPacket := &core.GossipPacket{TLCMessage: tlcPacket}
+// 	go tlcma.ctx.SendPacketToPeer(*gossipPacket, peer)
+// }
+
+// func (tlcma *TLCMongeringAdapter) GetContent(id uint32, content core.Stackable, origin string) core.Stackable {
+// 	tlcMessage := &core.TLCMessage{ID: id, TxBlock: content.GetValue().(core.BlockPublish), Origin: origin}
+// 	return tlcMessage
+// }
+
+// func (tlcma *TLCMongeringAdapter) GenerateFormatedStatusPacket(statusPacket *core.StatusPacket) *core.GossipPacket {
+// 	tlcMessage := &core.TLCMessage{VectorClock: statusPacket}
+// 	return &core.GossipPacket{
+// 		TLCMessage: tlcMessage,
+// 	}
+// }
+
+// func (tlcma *TLCMongeringAdapter) SendPacketToPeer(gossipPacket core.GossipPacket, peer string) {
+// 	go tlcma.ctx.SendPacketToPeer(gossipPacket, peer)
+// }
+
+// func (tlcma *TLCMongeringAdapter) GetContext() *core.Context {
+// 	return tlcma.ctx
+// }

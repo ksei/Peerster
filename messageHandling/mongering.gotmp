@@ -1,0 +1,92 @@
+// package messageHandling
+
+// import (
+// 	"fmt"
+// 	"math/rand"
+// 	"strings"
+// 	"time"
+
+// 	core "github.com/ksei/Peerster/Core"
+// )
+
+// func (mh *MessageHandler) startMongering(rumour core.RumourMessage, peer string) {
+// 	fmt.Println("MONGERING with", peer)
+// 	gossipPacket := core.CreateGossipPacket(&rumour)
+// 	mh.ackLocker.Lock()
+// 	mh.awaitingAcknowledgementFrom[peer] = true
+// 	mh.ackLocker.Unlock()
+// 	go mh.ctx.SendPacketToPeer(gossipPacket, peer)
+// 	for {
+// 		select {
+// 		case acknowledged := <-mh.acknowledgementChannel:
+// 			if strings.Compare(peer, acknowledged.Sender) != 0 {
+// 				continue
+// 			}
+// 			mh.ackLocker.Lock()
+// 			mh.awaitingAcknowledgementFrom[peer] = false
+// 			mh.ackLocker.Unlock()
+// 			printStatus(acknowledged.Sender, acknowledged.Packet.Status.Want)
+// 			if !mh.ctx.VectorClock.IsInSyncWith(*acknowledged.Packet.Status) {
+// 				go mh.syncStatuses(*acknowledged.Packet.Status, acknowledged.Sender)
+// 			} else {
+// 				fmt.Println("IN SYNC WITH", acknowledged.Sender)
+// 				go mh.flipCoin(rumour, peer)
+// 			}
+// 			return
+// 		case <-time.After(10 * time.Second):
+// 			mh.ackLocker.Lock()
+// 			mh.awaitingAcknowledgementFrom[peer] = false
+// 			mh.ackLocker.Unlock()
+// 			go mh.flipCoin(rumour, peer)
+// 			return
+// 		}
+// 	}
+// }
+
+// func (mh *MessageHandler) acknowledge(peer string) {
+// 	statusPacket := &core.StatusPacket{Want: mh.ctx.VectorClock.GetCurrentStatus()}
+// 	gossipPacket := &core.GossipPacket{Status: statusPacket}
+// 	go mh.ctx.SendPacketToPeer(*gossipPacket, peer)
+// }
+
+// func (mh *MessageHandler) messageExists(rumour core.RumourMessage) bool {
+// 	_, ok := mh.ctx.VectorClock.GetStoredMessage(rumour.Origin, rumour.ID)
+// 	return ok
+// }
+
+// func (mh *MessageHandler) syncStatuses(statusPacket core.StatusPacket, sender string) {
+// 	have, need := mh.ctx.VectorClock.CompareV2(statusPacket)
+
+// 	if len(have) > 0 {
+// 		mh.ctx.VectorClock.Locker.RLock()
+// 		rumour := core.NewRumourMessage(have[0].NextID, mh.ctx.VectorClock.Stack[have[0].Identifier][have[0].NextID].(string), have[0].Identifier)
+// 		mh.ctx.VectorClock.Locker.RUnlock()
+// 		go mh.startMongering(*rumour, sender)
+// 	} else {
+// 		statusPacket := &core.StatusPacket{Want: need}
+// 		gossipPacket := &core.GossipPacket{Status: statusPacket}
+// 		go mh.ctx.SendPacketToPeer(*gossipPacket, sender)
+// 	}
+// }
+
+// func (mh *MessageHandler) flipCoin(rumour core.RumourMessage, previousPeer string) {
+// 	continueMongering := rand.Intn(2) == 1
+// 	if continueMongering {
+// 		randomPeer := core.RandomPeer(mh.ctx, previousPeer)
+// 		fmt.Println("FLIPPED COIN sending rumor to", randomPeer)
+// 		go mh.startMongering(rumour, randomPeer)
+// 	}
+// }
+
+// func (mh *MessageHandler) startAntiEntropy(waitPeriodSeconds int) {
+// 	if mh.ctx.SimpleMode || waitPeriodSeconds == 0 || len(mh.ctx.Peers) == 0 {
+// 		return
+// 	}
+// 	for {
+// 		time.Sleep(time.Duration(waitPeriodSeconds) * time.Second)
+// 		if len(mh.ctx.GetPeers()) == 0 {
+// 			continue
+// 		}
+// 		go mh.acknowledge(core.RandomPeer(mh.ctx, ""))
+// 	}
+// }
