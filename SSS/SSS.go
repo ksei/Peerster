@@ -29,6 +29,7 @@ func GenerateShares(secret *big.Int,Nshare int,threshold_k int) []*Share {
     for j := threshold_k - 1; j > -1; j-- {
   		shares[i].y.Mul(shares[i].y, xi)
   		shares[i].y.Add(shares[i].y, coeffs[j])
+      shares[i].y.Mod(shares[i].y,mod)
     }
   }
 
