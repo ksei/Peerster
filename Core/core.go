@@ -7,18 +7,20 @@ import (
 )
 
 const (
-	SIMPLE_MESSAGE  = 1
-	RUMOUR_MESSAGE  = 2
-	STATUS_PACKET   = 3
-	PRIVATE_MESSAGE = 4
-	DATA_REQUEST    = 5
-	DATA_REPLY      = 6
-	SEARCH_REQUEST  = 7
-	SEARCH_REPLY    = 8
-	FILE_INDEXING   = 9
-	TLC_MESSAGE     = 10
-	TLC_ACK         = 11
-	UNKNOWN         = -1
+	SIMPLE_MESSAGE    = 1
+	RUMOUR_MESSAGE    = 2
+	STATUS_PACKET     = 3
+	PRIVATE_MESSAGE   = 4
+	DATA_REQUEST      = 5
+	DATA_REPLY        = 6
+	SEARCH_REQUEST    = 7
+	SEARCH_REPLY      = 8
+	FILE_INDEXING     = 9
+	TLC_MESSAGE       = 10
+	TLC_ACK           = 11
+	PASSWORD_INSERT   = 12
+	PASSWORD_RETRIEVE = 13
+	UNKNOWN           = -1
 )
 
 //Message struct for client-gossiper communicaiton
@@ -29,6 +31,10 @@ type Message struct {
 	Request     *[]byte
 	KeyWords    *string
 	Budget      *uint64
+	MasterKey   *string
+	NewPassword *string
+	AccountURL  *string
+	UserName    *string
 }
 
 //SimpleMessage structure
@@ -40,16 +46,17 @@ type SimpleMessage struct {
 
 //GossipPacket for building on at a later point
 type GossipPacket struct {
-	Simple        *SimpleMessage
-	Rumor         *RumourMessage
-	Status        *StatusPacket
-	Private       *PrivateMessage
-	DataRequest   *DataRequest
-	DataReply     *DataReply
-	SearchRequest *SearchRequest
-	SearchReply   *SearchReply
-	TLCMessage    *TLCMessage
-	Ack           *TLCAck
+	Simple            *SimpleMessage
+	Rumor             *RumourMessage
+	Status            *StatusPacket
+	Private           *PrivateMessage
+	DataRequest       *DataRequest
+	DataReply         *DataReply
+	SearchRequest     *SearchRequest
+	SearchReply       *SearchReply
+	TLCMessage        *TLCMessage
+	Ack               *TLCAck
+	PublicSecretShare *PublicShare
 }
 
 //PrivateMessage struct for point to point messaging
@@ -181,6 +188,19 @@ type GUIPacket struct {
 	SearchResult *SearchResult
 }
 
+/*PublicShare represents the actual data structure to be transmitted inside a gossip packet
+- uid: Unique Indentiefier of the SecretShare
+- securedShare: a byte array representing the encrypted Share data structure to be shared inside this secretShare
+*/
+type PublicShare struct {
+	Origin       string
+	Destination  string
+	ID           uint32
+	HopLimit     uint32
+	UID          string
+	SecuredShare []byte
+}
+
 //GetType used to determine contents of a given GossiperPacket
 func (gp *GossipPacket) GetType(allowSimple bool) (int, error) {
 	if gp.Simple != nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && allowSimple {
@@ -218,6 +238,10 @@ func (m *Message) GetType(simpleMode bool) int {
 		return DATA_REQUEST
 	} else if m.KeyWords != nil {
 		return SEARCH_REQUEST
+	} else if m.MasterKey != nil && m.NewPassword != nil {
+		return PASSWORD_INSERT
+	} else if m.MasterKey != nil && m.NewPassword == nil {
+		return PASSWORD_RETRIEVE
 	} else if m.Destination != nil {
 		return PRIVATE_MESSAGE
 	} else {

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -97,13 +98,14 @@ func (ctx *Context) SendPacketToPeer(gossipPacket GossipPacket, peer string) err
 	return nil
 }
 
-func (ctx *Context) SendPacketToPeerViaRouting(gossipePacket GossipPacket, peer string) {
+//SendPacketToPeerViaRouting accepts a gossip packet and attempts to send it to a given origin. If the route to the given origin is not found an error is returned.
+func (ctx *Context) SendPacketToPeerViaRouting(gossipePacket GossipPacket, peer string) error {
 	found, destination := ctx.RetrieveDestinationRoute(peer)
 	if found == 1 {
 		ctx.SendPacketToPeer(gossipePacket, destination)
-		return
+		return nil
 	}
-	fmt.Println("Unable to retrieve route for given origin...")
+	return errors.New("Unable to retrieve route for given origin")
 }
 
 //ForwardToPeers forwards a message to all known peers
@@ -183,6 +185,18 @@ func (ctx *Context) RetrieveDestinationRoute(destination string) (int, string) {
 		return -1, ""
 	}
 	return 1, destinationIP
+}
+
+//GetPeerOrigins returns list of all stored peer origins
+func (ctx *Context) GetPeerOrigins() []string {
+	ctx.dsdvLocker.RLock()
+	defer ctx.dsdvLocker.RUnlock()
+
+	origins := make([]string, 0, len(ctx.DSDVector))
+	for k := range ctx.DSDVector {
+		origins = append(origins, k)
+	}
+	return origins
 }
 
 //GetHopLimit retrieves the common hopLimit from the context
