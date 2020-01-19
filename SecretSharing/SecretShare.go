@@ -10,15 +10,17 @@ import (
 ! Note that this data structure must always be encrypted before being sent
 */
 type SecretShare struct {
-	sentTo string
-	share  []byte
+	sentTo      string
+	replicateID uint32
+	share       []byte
 }
 
 //NewSecret instantiates a new SecretShare
-func NewSecret(receiverOrigin string, shareToAdd []byte) *SecretShare {
+func NewSecret(receiverOrigin string, repID uint32, shareToAdd []byte) *SecretShare {
 	share := &SecretShare{
-		sentTo: receiverOrigin,
-		share:  shareToAdd,
+		sentTo:      receiverOrigin,
+		replicateID: repID,
+		share:       shareToAdd,
 	}
 	return share
 }
@@ -31,4 +33,14 @@ func (ss *SecretShare) toBytes() ([]byte, error) {
 	}
 
 	return shareBytes, nil
+}
+
+//fromBytes parses a secretShare from given bytes
+func fromBytes(inputBytes []byte) (*SecretShare, error) {
+	outputSecretShare := SecretShare{}
+	err := protobuf.Decode(inputBytes, &outputSecretShare)
+	if err != nil {
+		return nil, err
+	}
+	return &outputSecretShare, nil
 }

@@ -189,13 +189,14 @@ type GUIPacket struct {
 }
 
 /*PublicShare represents the actual data structure to be transmitted inside a gossip packet
+- replicateID: id identifying the replicate index of the share for a password (i.e. one share might be delivered to 3 different peers)
 - uid: Unique Indentiefier of the SecretShare
 - securedShare: a byte array representing the encrypted Share data structure to be shared inside this secretShare
 */
 type PublicShare struct {
 	Origin       string
 	Destination  string
-	ID           uint32
+	ReplicateID  uint32
 	HopLimit     uint32
 	UID          string
 	SecuredShare []byte

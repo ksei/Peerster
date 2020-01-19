@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"errors"
 	"io"
 	"strings"
 
@@ -12,6 +13,28 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/hkdf"
 )
+
+type extraInfo struct {
+	Salt  []byte
+	Nonce []byte
+}
+
+func (ssHandler *SSHandler) storeExtraInfo(uid string, salt, nonce []byte) error {
+	info := &extraInfo{
+		Salt:  salt,
+		Nonce: nonce,
+	}
+
+	ssHandler.ssLocker.Lock()
+	defer ssHandler.ssLocker.Unlock()
+
+	if _, exists := ssHandler.extraInfo[uid]; exists {
+		return errors.New("Password exists")
+	}
+
+	ssHandler.extraInfo[uid] = info
+	return nil
+}
 
 func KDF(masterKey, extraInfo string) ([]byte, []byte, error) {
 	hash := sha256.New
@@ -34,6 +57,20 @@ func KDF(masterKey, extraInfo string) ([]byte, []byte, error) {
 	}
 
 	return key, salt, nil
+}
+
+func RecoverKeyKDF(masterKey string, salt, info []byte) ([]byte, error) {
+	hash := sha256.New
+	secret := []byte(masterKey)
+
+	// Generate 128-bit derived key.
+	hkdf := hkdf.New(hash, secret, salt, info)
+	key := make([]byte, 16)
+	if _, err := io.ReadFull(hkdf, key); err != nil {
+		return nil, err
+	}
+
+	return key, nil
 }
 
 func Enc(key, plaintext []byte) ([]byte, []byte, error) {
@@ -84,28 +121,26 @@ func (ssHandler *SSHandler) encryptPassword(masterKey, account, username, passwo
 	if err != nil {
 		return nil, err
 	}
-	ssHandler.storeSalt(passwordUID, salt)
-	ssHandler.storeNonce(passwordUID, nonce)
-
+	ssHandler.storeExtraInfo(passwordUID, salt, nonce)
 	return encryptedPassword, nil
 
 }
 
-func (ssHandler *SSHandler) encryptShares(masterKey, account, username string, sharesToPeers map[string][]byte) ([]*core.PublicShare, error) {
+func (ssHandler *SSHandler) encryptShares(masterKey, passwordUID string, replicateIndex map[string]uint32, shares [][]byte) ([]*core.PublicShare, error) {
 	var publicShares = []*core.PublicShare{}
-	for origin, share := range sharesToPeers {
-		key, salt, err := KDF(masterKey, strings.Join([]string{account, username, origin}, ""))
+	for origin, index := range replicateIndex {
+
+		shareUID, err := GetShareUID(passwordUID, origin)
 		if err != nil {
 			return nil, err
 		}
 
-		uidBytes, err := bcrypt.GenerateFromPassword([]byte(masterKey+account+username+origin), bcrypt.DefaultCost)
+		key, salt, err := KDF(masterKey, shareUID)
 		if err != nil {
 			return nil, err
 		}
-		shareUID := string(uidBytes)
 
-		secretShare := NewSecret(origin, share)
+		secretShare := NewSecret(origin, index, shares[index])
 		shareBytes, err := secretShare.toBytes()
 		if err != nil {
 			return nil, err
@@ -115,9 +150,58 @@ func (ssHandler *SSHandler) encryptShares(masterKey, account, username string, s
 			return nil, err
 		}
 
-		publicShares = append(publicShares, ssHandler.NewPublic(origin, shareUID, encryptedShare))
-		ssHandler.storeSalt(shareUID, salt)
-		ssHandler.storeNonce(shareUID, nonce)
+		publicShares = append(publicShares, ssHandler.NewPublic(origin, shareUID, index, encryptedShare))
+		ssHandler.storeExtraInfo(shareUID, salt, nonce)
 	}
+
 	return publicShares, nil
+}
+
+func GetShareUID(passwordUID, origin string) (string, error) {
+	uidBytes, err := bcrypt.GenerateFromPassword([]byte(strings.Join([]string{passwordUID, origin}, "")), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	shareUID := string(uidBytes)
+
+	return shareUID, nil
+
+}
+
+func (ssHandler *SSHandler) openShareAndUpdate(passwordUID, masterKey string, publicShare core.PublicShare) error {
+	shareUID := publicShare.UID
+	sender := publicShare.Origin
+	encryptedSecretBytes := publicShare.SecuredShare
+	ssHandler.ssLocker.RLock()
+	extraInfo, exists := ssHandler.extraInfo[shareUID]
+	ssHandler.ssLocker.RUnlock()
+
+	if !exists {
+		return errors.New("Could not find share information")
+	}
+
+	key, err := RecoverKeyKDF(masterKey, extraInfo.Salt, []byte(shareUID))
+	if err != nil {
+		return errors.New("Could not open share")
+	}
+	secretBytes, err := Dec(key, encryptedSecretBytes, extraInfo.Nonce)
+	if err != nil {
+		return errors.New("Could not open share" + err.Error())
+	}
+
+	secretShare, err := fromBytes(secretBytes)
+	if err != nil {
+		return errors.New("Error while decoding share" + err.Error())
+	}
+
+	if strings.Compare(sender, secretShare.sentTo) != 0 {
+		return errors.New("Malicious share received")
+	}
+
+	ssHandler.ssLocker.Lock()
+	defer ssHandler.ssLocker.Unlock()
+	if _, exists := ssHandler.requestedPasswordStatus[passwordUID][secretShare.replicateID]; !exists {
+		ssHandler.requestedPasswordStatus[passwordUID][secretShare.replicateID] = secretShare.share
+	}
+	return nil
 }

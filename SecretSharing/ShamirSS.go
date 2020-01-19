@@ -2,8 +2,8 @@ package SecretSharing
 
 import (
 	"crypto/rand"
-	"math/big"
 	"github.com/dedis/protobuf"
+	"math/big"
 )
 
 type Share struct {
@@ -34,14 +34,14 @@ func GenerateShares(secret []byte, Nshare int, threshold_k int) [][]byte {
 		for j := threshold_k - 1; j > -1; j-- {
 			shares[i].y.Mul(shares[i].y, xi)
 			shares[i].y.Add(shares[i].y, coeffs[j])
-      shares[i].y.Mod(shares[i].y, mod)
+			shares[i].y.Mod(shares[i].y, mod)
 		}
 	}
 
-	bytesShares:=make([][]byte, Nshare)
-	for s:= range shares{
-		bs,_:=protobuf.Encode(s)
-		bytesShares=append(bytesShares,  bs)
+	bytesShares := make([][]byte, Nshare)
+	for s := range shares {
+		bs, _ := protobuf.Encode(s)
+		bytesShares = append(bytesShares, bs)
 	}
 	return bytesShares
 
