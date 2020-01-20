@@ -73,6 +73,15 @@ func (ssHandler *SSHandler) handlePasswordInsert(masterKey, account, username, n
 
 func (ssHandler *SSHandler) handlePasswordRetrieval(masterKey, account, username string) {
 	//1. Assign Password UID and check if it exists
+	if ssHandler.passwordExists(masterKey, account, username) {
+		fmt.Println("Password has been already registered. Updates are not supported at the moment.")
+		return
+	}
+	passwordUID, err := generatePasswordUid(masterKey, account, username)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	//2. If yes, proceed by creating a search expanding ring using the uid
 	//3. Wait until the threshold of unique received shares is received
 	//4. Decrypt each share generating key by kdf with the same parameters as above
@@ -106,17 +115,33 @@ func (ssHandler *SSHandler) processShare(publicShare core.PublicShare) error {
 			return err
 		}
 		//Check now if received shares for passwordUID meet the threshold.
+		_, retrievingThreshold, err := ssHandler.getSplittingParams()
+		if err != nil {
+			return err
+		}
+
+		if(len(ssHandler.requestedPasswordStatus[passwordUID])>=retrievingThreshold){
+			//Reconstruct secret
+		}
 	}
 	return nil
 }
 
 func (ssHandler *SSHandler) registerPassword(masterKey, account, username string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(masterKey+account+username), bcrypt.DefaultCost)
+	uid, err := generatePasswordUid(masterKey, account, username)
 	if err != nil {
 		return "", err
 	}
 	ssHandler.ssLocker.Lock()
 	defer ssHandler.ssLocker.Unlock()
-	ssHandler.storedPasswords = append(ssHandler.storedPasswords, string(bytes))
+	ssHandler.storedPasswords = append(ssHandler.storedPasswords, uid)
+	return uid, err
+}
+
+func generatePasswordUid(masterKey, account, username string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(masterKey+account+username), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
 	return string(bytes), err
 }
