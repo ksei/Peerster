@@ -120,8 +120,19 @@ func (ssHandler *SSHandler) processShare(publicShare core.PublicShare) error {
 			return err
 		}
 
-		if(len(ssHandler.requestedPasswordStatus[passwordUID])>=retrievingThreshold){
+		sharemap:=ssHandler.requestedPasswordStatus[passwordUID]
+		l:=len(sharemap)
+		if(l>=retrievingThreshold){
+			shareslice:=make([][]byte, l)
+			for _,v:=range sharemap{
+				shareslice=append(shareslice, v)
+			}
 			//Reconstruct secret
+			secret,err:=RecoverSecret(shareslice, retrievingThreshold)
+
+			//decrypting secret
+
+
 		}
 	}
 	return nil

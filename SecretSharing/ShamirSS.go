@@ -48,11 +48,19 @@ func GenerateShares(secret []byte, Nshare int, threshold_k int) [][]byte {
 
 }
 
-func RecoverSecret(shares []*Share, threshold int) ([]byte, error) {
+func RecoverSecret(byteShares [][]byte, threshold int) ([]byte, error) {
 
-	if len(shares) < threshold {
+	if len(byteShares) < threshold {
 		return nil, errors.New("share: not enough shares to recover secret")
 	}
+
+	shares := make([]*Share, len(byteShares))
+	for _,bs := range byteShares {
+		var s *Share
+		protobuf.Decode(bs,s)
+		shares = append(shares, s)
+	}
+
 
 	accumulator :=big.NewInt(int64(0))
 	var num *big.Int
