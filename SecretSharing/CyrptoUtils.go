@@ -150,11 +150,19 @@ func (ssHandler *SSHandler) encryptShares(masterKey, passwordUID string, replica
 			return nil, err
 		}
 
-		publicShares = append(publicShares, ssHandler.NewPublic(origin, shareUID, index, encryptedShare))
+		publicShares = append(publicShares, ssHandler.NewPublic(origin, shareUID, encryptedShare))
 		ssHandler.storeExtraInfo(shareUID, salt, nonce)
 	}
 
 	return publicShares, nil
+}
+
+func GetPasswordUID(masterKey, account, username string) (string, error) {
+	uidBytes, err := bcrypt.GenerateFromPassword([]byte(masterKey+account+username), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(uidBytes), nil
 }
 
 func GetShareUID(passwordUID, origin string) (string, error) {

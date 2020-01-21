@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	core "github.com/ksei/Peerster/Core"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -20,7 +19,8 @@ type SSHandler struct {
 	storedPasswords         []string
 	tempKeyStorage          string
 	extraInfo               map[string]*extraInfo
-	hostedShares            map[string][][]byte
+	thresholds              map[string]int
+	hostedShares            map[string][]byte
 	requestedPasswordStatus map[string]map[uint32][]byte
 }
 
@@ -48,6 +48,7 @@ func (ssHandler *SSHandler) handlePasswordInsert(masterKey, account, username, n
 		fmt.Println(err)
 		return
 	}
+	ssHandler.storeThreshold(passwordUID, retrievingThreshold)
 	shares := GenerateShares(encryptedPass, totalShares, retrievingThreshold)
 	//4. Assign each share to an origin from dsdv
 	peerReplicateIndex, err := ssHandler.mapSharesToPeers(totalShares)
@@ -72,8 +73,19 @@ func (ssHandler *SSHandler) handlePasswordInsert(masterKey, account, username, n
 }
 
 func (ssHandler *SSHandler) handlePasswordRetrieval(masterKey, account, username string) {
-	//1. Assign Password UID and check if it exists
+	//1. Assign Password UID and check if it exists and it is not currently being retrieved
+	if !ssHandler.passwordExists(masterKey, account, username) {
+		fmt.Println("Incorrect credentials provided, please try again")
+		return
+	}
+	passwordUID, err := GetPasswordUID(masterKey, account, username)
+	if err != nil {
+		fmt.Println("An error occured while processing your data")
+		return
+	}
 	//2. If yes, proceed by creating a search expanding ring using the uid
+	ssHandler.storeTemporaryKey(masterKey)
+
 	//3. Wait until the threshold of unique received shares is received
 	//4. Decrypt each share generating key by kdf with the same parameters as above
 	//5. Reconstruct secret
@@ -100,23 +112,26 @@ func (ssHandler *SSHandler) HandlePublicShare(packet core.GossipPacket) {
 }
 
 func (ssHandler *SSHandler) processShare(publicShare core.PublicShare) error {
+	//First check if the received public share belongs to a password being awaited
 	if passwordUID, awaiting := ssHandler.awaitingShare(publicShare); awaiting {
+		//If such a password exists, open, verify and update status share with openShareAndUpdate
 		err := ssHandler.openShareAndUpdate(passwordUID, ssHandler.tempKeyStorage, publicShare)
 		if err != nil {
 			return err
 		}
-		//Check now if received shares for passwordUID meet the threshold.
+	} else { //If public share does not belong to shares we are waiting for, it means that share is to be hosted for another peer
+		ssHandler.storeShare(publicShare)
 	}
 	return nil
 }
 
 func (ssHandler *SSHandler) registerPassword(masterKey, account, username string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(masterKey+account+username), bcrypt.DefaultCost)
+	passwordUID, err := GetPasswordUID(masterKey, account, username)
 	if err != nil {
 		return "", err
 	}
 	ssHandler.ssLocker.Lock()
 	defer ssHandler.ssLocker.Unlock()
-	ssHandler.storedPasswords = append(ssHandler.storedPasswords, string(bytes))
-	return string(bytes), err
+	ssHandler.storedPasswords = append(ssHandler.storedPasswords, passwordUID)
+	return passwordUID, nil
 }

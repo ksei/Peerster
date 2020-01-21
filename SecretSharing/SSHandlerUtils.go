@@ -11,11 +11,10 @@ import (
 )
 
 //NewPublic instantiates a new SecretShare
-func (ssHandler *SSHandler) NewPublic(shareUid, dest string, replicateID uint32, secShareToAdd []byte) *core.PublicShare {
+func (ssHandler *SSHandler) NewPublic(shareUid, dest string, secShareToAdd []byte) *core.PublicShare {
 	share := &core.PublicShare{
 		Origin:       ssHandler.ctx.Name,
 		Destination:  dest,
-		ReplicateID:  replicateID,
 		HopLimit:     ssHandler.ctx.GetHopLimit(),
 		UID:          shareUid,
 		SecuredShare: secShareToAdd,
@@ -97,16 +96,41 @@ func (ssHandler *SSHandler) awaitingShare(publicShare core.PublicShare) (string,
 	return "", false
 }
 
-// func (ssHandler *SSHandler) updateAwaitingStatus(passwordUID string, publicShare core.PublicShare) {
-// 	ssHandler.ssLocker.Lock()
-// 	defer ssHandler.ssLocker.Unlock()
+func (ssHandler *SSHandler) storeThreshold(passwordUID string, thresh int) error {
+	ssHandler.ssLocker.Lock()
+	defer ssHandler.ssLocker.Unlock()
 
-// 	shareUID := publicShare.UID
-// 	secretShare := publicShare.SecuredShare
-// 	index := ssHandler.replicateIndex[shareUID]
+	if _, exists := ssHandler.thresholds[passwordUID]; exists {
+		return errors.New("password threshold already stored")
+	}
 
-// 	if _, exists := ssHandler.receivedShares[passwordUID]; !exists {
-// 		ssHandler.receivedShares[passwordUID] = make(map[string][]byte)
-// 	}
-// 	//Check size of distinct shares received for that passwordUID, and if above the threshhold begin reconstruction.
-// }
+	ssHandler.thresholds[passwordUID] = thresh
+	return nil
+}
+
+func (ssHandler *SSHandler) thresholdAchieved(passwordUID string) bool {
+	ssHandler.ssLocker.RLock()
+	defer ssHandler.ssLocker.RUnlock()
+	return ssHandler.thresholds[passwordUID] <= len(ssHandler.requestedPasswordStatus[passwordUID])
+}
+
+func (ssHandler *SSHandler) storeShare(publicShare core.PublicShare) {
+	ssHandler.ssLocker.Lock()
+	defer ssHandler.ssLocker.Unlock()
+
+	ssHandler.hostedShares[publicShare.UID] = publicShare.SecuredShare
+}
+
+func (ssHandler *SSHandler) storeTemporaryKey(masterKey string) {
+	ssHandler.ssLocker.Lock()
+	defer ssHandler.ssLocker.Unlock()
+
+	ssHandler.tempKeyStorage = masterKey
+}
+
+func (ssHandler *SSHandler) registerPasswordRequest(passwordUID string) {
+	ssHandler.ssLocker.Lock()
+	defer ssHandler.ssLocker.Unlock()
+
+	ssHandler.requestedPasswordStatus[passwordUID] = make(map[uint32][]byte)
+}

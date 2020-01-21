@@ -146,7 +146,6 @@ func (fH *FileHandler) forwardSearchRequest(sender string, searchRequest *core.S
 			}
 			go fH.ctx.SendPacketToPeer(core.GossipPacket{SearchRequest: searchRequest}, peer)
 		}
-
 	}
 }
 

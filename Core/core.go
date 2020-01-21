@@ -196,10 +196,16 @@ type GUIPacket struct {
 type PublicShare struct {
 	Origin       string
 	Destination  string
-	ReplicateID  uint32
 	HopLimit     uint32
 	UID          string
 	SecuredShare []byte
+}
+
+//ShareRequest serves as a struct designated for sending requests in an expanding ring manner, in order to reconstruct a password through received shares
+type ShareRequest struct {
+	Origin     string
+	Budget     uint64
+	RequestUID string
 }
 
 //GetType used to determine contents of a given GossiperPacket
