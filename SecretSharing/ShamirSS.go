@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"github.com/dedis/protobuf"
 	"math/big"
+	"errors"
 )
 
 type Share struct {
@@ -45,4 +46,49 @@ func GenerateShares(secret []byte, Nshare int, threshold_k int) [][]byte {
 	}
 	return bytesShares
 
+}
+
+func RecoverSecret(byteShares [][]byte, threshold int) ([]byte, error) {
+
+	if len(byteShares) < threshold {
+		return nil, errors.New("share: not enough shares to recover secret")
+	}
+
+	shares := make([]*Share, len(byteShares))
+	for _,bs := range byteShares {
+		var s *Share
+		protobuf.Decode(bs,s)
+		shares = append(shares, s)
+	}
+
+
+	accumulator :=big.NewInt(int64(0))
+	var num *big.Int
+	var denom *big.Int
+	var temp *big.Int
+	var xi *big.Int
+
+	for i, si:= range shares{
+		num.Set(si.y)
+		denom=big.NewInt(int64(1))
+		xi.SetInt64(int64(si.x))
+		for j,sj := range shares {
+			if i == j {
+				continue
+			}
+			temp.SetInt64(int64(sj.x))
+			num.Mul(num, temp)
+			denom.Mul(denom, temp.Sub(xi, temp))
+			num.Mod(num, mod)
+			denom.Mod(denom, mod)
+		}
+
+		temp.ModInverse(denom, mod)
+		temp.Mul(num, temp)
+		accumulator.Add(accumulator,temp)
+		accumulator.Mod(accumulator, mod)
+
+	}
+
+	return accumulator.Bytes(),nil
 }

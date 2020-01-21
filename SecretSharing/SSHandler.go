@@ -81,6 +81,7 @@ func (ssHandler *SSHandler) handlePasswordRetrieval(masterKey, account, username
 	passwordUID, err := GetPasswordUID(masterKey, account, username)
 	if err != nil {
 		fmt.Println("An error occured while processing your data")
+
 		return
 	}
 	//2. If yes, proceed by creating a search expanding ring using the uid
@@ -120,13 +121,33 @@ func (ssHandler *SSHandler) processShare(publicShare core.PublicShare) error {
 			return err
 		}
 	} else { //If public share does not belong to shares we are waiting for, it means that share is to be hosted for another peer
-		ssHandler.storeShare(publicShare)
+
+		//Check now if received shares for passwordUID meet the threshold.
+		_, retrievingThreshold, err := ssHandler.getSplittingParams()
+		if err != nil {
+			return err
+		}
+
+		sharemap := ssHandler.requestedPasswordStatus[passwordUID]
+		l := len(sharemap)
+		if l >= retrievingThreshold {
+			shareslice := make([][]byte, l)
+			for _, v := range sharemap {
+				shareslice = append(shareslice, v)
+			}
+			//Reconstruct secret
+			secret, err := RecoverSecret(shareslice, retrievingThreshold)
+
+			//decrypting secret
+
+		}
 	}
 	return nil
 }
 
 func (ssHandler *SSHandler) registerPassword(masterKey, account, username string) (string, error) {
 	passwordUID, err := GetPasswordUID(masterKey, account, username)
+
 	if err != nil {
 		return "", err
 	}
