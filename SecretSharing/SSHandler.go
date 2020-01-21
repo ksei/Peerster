@@ -1,6 +1,7 @@
 package SecretSharing
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -123,21 +124,19 @@ func (ssHandler *SSHandler) processShare(publicShare core.PublicShare) error {
 	} else { //If public share does not belong to shares we are waiting for, it means that share is to be hosted for another peer
 
 		//Check now if received shares for passwordUID meet the threshold.
-		_, retrievingThreshold, err := ssHandler.getSplittingParams()
-		if err != nil {
-			return err
+		retrievingThreshold, exists := ssHandler.retrieveThreshold(passwordUID)
+		if !exists {
+			return errors.New("Error occured while trying to retrieve share information")
 		}
 
-		sharemap := ssHandler.requestedPasswordStatus[passwordUID]
-		l := len(sharemap)
-		if l >= retrievingThreshold {
-			shareslice := make([][]byte, l)
+		sharemap, thresholdAchieved := ssHandler.thresholdAchieved(passwordUID)
+		if thresholdAchieved {
+			shareslice := make([][]byte, len(sharemap))
 			for _, v := range sharemap {
 				shareslice = append(shareslice, v)
 			}
 			//Reconstruct secret
 			secret, err := RecoverSecret(shareslice, retrievingThreshold)
-
 			//decrypting secret
 
 		}

@@ -15,7 +15,7 @@ func (ssHandler *SSHandler) isDuplicate(passwordUID string) bool {
 func (ssHandler *SSHandler) initiateShareCollection(passwordUID string) {
 	shareRequest := &core.ShareRequest{
 		Origin:     ssHandler.ctx.Name,
-		Budget:     124,
+		Budget:     128,
 		RequestUID: passwordUID,
 	}
 
