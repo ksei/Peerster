@@ -89,8 +89,20 @@ func (ssHandler *SSHandler) handlePasswordRetrieval(masterKey, account, username
 
 	//3. Wait until the threshold of unique received shares is received
 	//4. Decrypt each share generating key by kdf with the same parameters as above
+	shareslice := make([][]byte, /*number of shares*/)
+	for _, v := range ssHandler.requestedPasswordStatus[passwordUID] {
+		shareslice = append(shareslice, /*DecryptShare( v )*/)
+	}
+
 	//5. Reconstruct secret
+	secret, err := RecoverSecret(shareslice, ssHandler.thresholds[passwordUID])
+
 	//6. Decrypt reconstructed secret using as key the kdf with same parameters as above
+	clear_pass,err:=ssHandler.decryptPassword(masterKey, account, username, passwordUID, secret)
+	if err != nil {
+		fmt.Println("An error occured while decrypting your password")
+		return
+	}
 	//7. Return password
 }
 
@@ -121,26 +133,8 @@ func (ssHandler *SSHandler) processShare(publicShare core.PublicShare) error {
 			return err
 		}
 	} else { //If public share does not belong to shares we are waiting for, it means that share is to be hosted for another peer
+		ssHandler.storeShare(publicShare)
 
-		//Check now if received shares for passwordUID meet the threshold.
-		_, retrievingThreshold, err := ssHandler.getSplittingParams()
-		if err != nil {
-			return err
-		}
-
-		sharemap := ssHandler.requestedPasswordStatus[passwordUID]
-		l := len(sharemap)
-		if l >= retrievingThreshold {
-			shareslice := make([][]byte, l)
-			for _, v := range sharemap {
-				shareslice = append(shareslice, v)
-			}
-			//Reconstruct secret
-			secret, err := RecoverSecret(shareslice, retrievingThreshold)
-
-			//decrypting secret
-
-		}
 	}
 	return nil
 }
