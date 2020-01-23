@@ -88,8 +88,13 @@ func (ssHandler *SSHandler) handlePasswordRetrieval(masterKey, account, username
 	ssHandler.storeTemporaryKey(masterKey)
 
 	//3. Wait until the threshold of unique received shares is received
+	//we can do better than that
+	for !ssHandler.thresholdAchieved(passwordUID){
+		//wait
+	}
+
 	//4. Decrypt each share generating key by kdf with the same parameters as above
-	shareslice := make([][]byte, /*number of shares*/)
+	shareslice := make([][]byte, len(ssHandler.requestedPasswordStatus[passwordUID]))
 	for _, v := range ssHandler.requestedPasswordStatus[passwordUID] {
 		shareslice = append(shareslice, /*DecryptShare( v )*/)
 	}
