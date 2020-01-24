@@ -213,3 +213,21 @@ func (ssHandler *SSHandler) openShareAndUpdate(passwordUID, masterKey string, pu
 	}
 	return nil
 }
+
+//to debug and check
+func (ssHandler *SSHandler) decryptPassword(masterKey, account, username, passwordUID string, encryptedPassword []byte) ([]byte, error) {
+
+	extra:=ssHandler.extraInfo[passwordUID]
+	key,err:=RecoverKeyKDF(masterKey, 	extra.Salt, []byte( strings.Join([]string{account, username}, "")) )
+
+	if err != nil {
+		return nil, err
+	}
+
+	clearPassword, err := Dec(key, encryptedPassword, extra.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return clearPassword, nil
+}
