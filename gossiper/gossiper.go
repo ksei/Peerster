@@ -41,7 +41,7 @@ func NewGossiper(address, name, UIp string, useSimpleMode, hw3ex2, hw3ex3 bool, 
 	gossiper.mongerer = mng.NewMongerer(gossiper.ctx, antiEntropy)
 	gossiper.messageHandler = mh.NewMessageHandler(gossiper.mongerer)
 	gossiper.tlcHandler = tlc.NewTLCHandler(gossiper.mongerer, totalPeers, stubbornTimeout)
-	gossiper.shamirHandler = SecretSharing.NewSSHandler(ctx)
+	gossiper.shamirHandler = SecretSharing.NewSSHandler(gossiper.ctx)
 	go gossiper.ListenToClients()
 	go gossiper.ListenToPeers()
 	go gossiper.startRouting(routing)

@@ -15,7 +15,7 @@ const (
 
 type SSHandler struct {
 	ssLocker                sync.RWMutex
-	ctx                     core.Context
+	ctx                     *core.Context
 	storedPasswords         []string
 	tempKeyStorage          string
 	extraInfo               map[string]*extraInfo
@@ -24,7 +24,7 @@ type SSHandler struct {
 	requestedPasswordStatus map[string]map[uint32][]byte
 }
 
-func NewSSHandler(ctx core.Context) *SSHandler {
+func NewSSHandler(ctx *core.Context) *SSHandler {
 	h:=&SSHandler{
 		ctx:ctx,
 		storedPasswords:         make([]string,0),
@@ -166,12 +166,4 @@ func (ssHandler *SSHandler) registerPassword(masterKey, account, username string
 	defer ssHandler.ssLocker.Unlock()
 	ssHandler.storedPasswords = append(ssHandler.storedPasswords, passwordUID)
 	return passwordUID, nil
-}
-
-//HandleShareSearch handles a new incoming share research; processes it and redistibute it
-func (ssHandler *SSHandler) HandleShareSearch(packet core.GossipPacket) {
-	search := packet.ShareSearch
-
-
-
 }
