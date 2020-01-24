@@ -57,6 +57,8 @@ type GossipPacket struct {
 	TLCMessage        *TLCMessage
 	Ack               *TLCAck
 	PublicSecretShare *PublicShare
+	ShareSearch				*ShareRequest
+
 }
 
 //PrivateMessage struct for point to point messaging
@@ -210,27 +212,31 @@ type ShareRequest struct {
 
 //GetType used to determine contents of a given GossiperPacket
 func (gp *GossipPacket) GetType(allowSimple bool) (int, error) {
-	if gp.Simple != nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && allowSimple {
+	if gp.Simple != nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && gp.PublicSecretShare == nil && gp.ShareSearch == nil && allowSimple {
 		return SIMPLE_MESSAGE, nil
-	} else if gp.Simple == nil && gp.Rumor != nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && !allowSimple {
+	} else if gp.Simple == nil && gp.Rumor != nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && gp.PublicSecretShare == nil && gp.ShareSearch == nil && !allowSimple {
 		return RUMOUR_MESSAGE, nil
-	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status != nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && !allowSimple {
+	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status != nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && gp.PublicSecretShare == nil && gp.ShareSearch == nil && !allowSimple {
 		return STATUS_PACKET, nil
-	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private != nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && !allowSimple {
+	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private != nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && gp.PublicSecretShare == nil && gp.ShareSearch == nil && !allowSimple {
 		return PRIVATE_MESSAGE, nil
-	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply != nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && !allowSimple {
+	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply != nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && gp.PublicSecretShare == nil && gp.ShareSearch == nil && !allowSimple {
 		return DATA_REPLY, nil
-	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest != nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && !allowSimple {
+	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest != nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && gp.PublicSecretShare == nil && gp.ShareSearch == nil && !allowSimple {
 		return DATA_REQUEST, nil
-	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest != nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && !allowSimple {
+	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest != nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && gp.PublicSecretShare == nil && gp.ShareSearch == nil && !allowSimple {
 		return SEARCH_REQUEST, nil
-	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply != nil && gp.TLCMessage == nil && gp.Ack == nil && !allowSimple {
+	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply != nil && gp.TLCMessage == nil && gp.Ack == nil && gp.PublicSecretShare == nil && gp.ShareSearch == nil && !allowSimple {
 		return SEARCH_REPLY, nil
-	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage != nil && gp.Ack == nil && !allowSimple {
+	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage != nil && gp.Ack == nil && gp.PublicSecretShare == nil && gp.ShareSearch == nil && !allowSimple {
 		return TLC_MESSAGE, nil
-	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack != nil && !allowSimple {
+	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack != nil && gp.PublicSecretShare == nil && gp.ShareSearch == nil && !allowSimple {
 		return TLC_ACK, nil
-	} else {
+	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && gp.PublicSecretShare != nil && gp.ShareSearch == nil && !allowSimple {
+		return PASSWORD_INSERT, nil
+	}else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && gp.PublicSecretShare == nil && gp.ShareSearch != nil && !allowSimple {
+		return PASSWORD_RETRIEVE, nil
+	}else {
 		return 0, errors.New("Corrupt Gossip Packet received: Multiple content packet received, or faulty broadcasting mode (SimpleMode set to true)")
 	}
 }

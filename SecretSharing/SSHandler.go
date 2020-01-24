@@ -24,6 +24,18 @@ type SSHandler struct {
 	requestedPasswordStatus map[string]map[uint32][]byte
 }
 
+func NewSSHandler(ctx core.Context) *SSHandler {
+	h:=&SSHandler{
+		ctx:ctx,
+		storedPasswords:         make([]string,0),
+		extraInfo:               make(map[string]*extraInfo),
+		thresholds:              make(map[string]int),
+		hostedShares :           make(map[string][]byte),
+		requestedPasswordStatus: make(map[string]map[uint32][]byte) }
+
+	return h
+}
+
 func (ssHandler *SSHandler) handlePasswordInsert(masterKey, account, username, newPassword string) {
 
 	//1. Assign Password UID and check if already inserted (for now we can start without supporting password upates)
@@ -154,4 +166,12 @@ func (ssHandler *SSHandler) registerPassword(masterKey, account, username string
 	defer ssHandler.ssLocker.Unlock()
 	ssHandler.storedPasswords = append(ssHandler.storedPasswords, passwordUID)
 	return passwordUID, nil
+}
+
+//HandleShareSearch handles a new incoming share research; processes it and redistibute it
+func (ssHandler *SSHandler) HandleShareSearch(packet core.GossipPacket) {
+	search := packet.ShareSearch
+
+
+
 }

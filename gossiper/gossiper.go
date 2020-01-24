@@ -13,6 +13,7 @@ import (
 	tlc "github.com/ksei/Peerster/TLC"
 	fh "github.com/ksei/Peerster/fileSharing"
 	mh "github.com/ksei/Peerster/messageHandling"
+	"github.com/ksei/Peerster/SecretSharing"
 )
 
 const localAddress = "127.0.0.1"
@@ -26,6 +27,7 @@ type Gossiper struct {
 	mongerer              *mng.Mongerer
 	messageHandler        *mh.MessageHandler
 	tlcHandler            *tlc.TLCHandler
+	shamirHandler         *SecretSharing.SSHandler
 }
 
 //NewGossiper method
@@ -39,6 +41,7 @@ func NewGossiper(address, name, UIp string, useSimpleMode, hw3ex2, hw3ex3 bool, 
 	gossiper.mongerer = mng.NewMongerer(gossiper.ctx, antiEntropy)
 	gossiper.messageHandler = mh.NewMessageHandler(gossiper.mongerer)
 	gossiper.tlcHandler = tlc.NewTLCHandler(gossiper.mongerer, totalPeers, stubbornTimeout)
+	gossiper.shamirHandler = SecretSharing.NewSSHandler(ctx)
 	go gossiper.ListenToClients()
 	go gossiper.ListenToPeers()
 	go gossiper.startRouting(routing)
@@ -165,6 +168,10 @@ func (g *Gossiper) waitForIncomingPeerMessage() {
 			go g.tlcHandler.HandleTLCMessage(packet, sender)
 		case core.TLC_ACK:
 			go g.tlcHandler.HandleTLCAck(packet)
+		case core.PASSWORD_INSERT:
+			go g.shamirHandler.HandlePublicShare(packet)
+		case core.PASSWORD_RETRIEVE:
+			go g.shamirHandler.HandleShareSearch(packet)
 		default:
 			go g.messageHandler.HandleRumourMessage(packet, sender)
 		}
