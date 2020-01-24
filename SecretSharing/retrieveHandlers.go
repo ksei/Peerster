@@ -54,7 +54,7 @@ func (ssHandler *SSHandler) forwardSearchRequest(sender string, shareRequest *co
 	totalPeers := len(peerList)
 	if int(totalBudget) < totalPeers {
 		shareRequest.Budget = 1
-		for _, peer := range core.RandomPeers(int(totalBudget), &ssHandler.ctx, sender) {
+		for _, peer := range core.RandomPeers(int(totalBudget), ssHandler.ctx, sender) {
 			go ssHandler.ctx.SendPacketToPeer(core.GossipPacket{ShareRequest: shareRequest}, peer)
 		}
 	} else {
