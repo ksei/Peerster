@@ -57,8 +57,7 @@ type GossipPacket struct {
 	TLCMessage        *TLCMessage
 	Ack               *TLCAck
 	PublicSecretShare *PublicShare
-	ShareSearch				*ShareRequest
-
+	ShareSearch       *ShareRequest
 }
 
 //PrivateMessage struct for point to point messaging
@@ -234,9 +233,9 @@ func (gp *GossipPacket) GetType(allowSimple bool) (int, error) {
 		return TLC_ACK, nil
 	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && gp.PublicSecretShare != nil && gp.ShareSearch == nil && !allowSimple {
 		return PASSWORD_INSERT, nil
-	}else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && gp.PublicSecretShare == nil && gp.ShareSearch != nil && !allowSimple {
+	} else if gp.Simple == nil && gp.Rumor == nil && gp.Status == nil && gp.Private == nil && gp.DataReply == nil && gp.DataRequest == nil && gp.SearchRequest == nil && gp.SearchReply == nil && gp.TLCMessage == nil && gp.Ack == nil && gp.PublicSecretShare == nil && gp.ShareSearch != nil && !allowSimple {
 		return PASSWORD_RETRIEVE, nil
-	}else {
+	} else {
 		return 0, errors.New("Corrupt Gossip Packet received: Multiple content packet received, or faulty broadcasting mode (SimpleMode set to true)")
 	}
 }

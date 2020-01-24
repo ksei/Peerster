@@ -1,7 +1,6 @@
 package SecretSharing
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
@@ -23,6 +22,7 @@ type SSHandler struct {
 	thresholds              map[string]int
 	hostedShares            map[string][]byte
 	requestedPasswordStatus map[string]map[uint32][]byte
+	thresholdReached        chan *string
 }
 
 func NewSSHandler(ctx *core.Context) *SSHandler {
@@ -94,12 +94,11 @@ func (ssHandler *SSHandler) handlePasswordRetrieval(masterKey, account, username
 	passwordUID, err := GetPasswordUID(masterKey, account, username)
 	if err != nil {
 		fmt.Println("An error occured while processing your data")
-
 		return
 	}
 	//2. If yes, proceed by creating a search expanding ring using the uid
 	ssHandler.storeTemporaryKey(masterKey)
-
+	go ssHandler.initiateShareCollection(passwordUID)
 	//3. Wait until the threshold of unique received shares is received
 	//we can do better than that
 	for !ssHandler.thresholdAchieved(passwordUID){
@@ -150,17 +149,15 @@ func (ssHandler *SSHandler) processShare(publicShare core.PublicShare) error {
 		if err != nil {
 			return err
 		}
+<<<<<<< Updated upstream
 	} else { //If public share does not belong to shares we are waiting for, it means that share is to be hosted for another peer
 		ssHandler.storeShare(publicShare)
 
 <<<<<<< HEAD
+=======
+>>>>>>> Stashed changes
 		//Check now if received shares for passwordUID meet the threshold.
-		retrievingThreshold, exists := ssHandler.retrieveThreshold(passwordUID)
-		if !exists {
-			return errors.New("Error occured while trying to retrieve share information")
-		}
-
-		sharemap, thresholdAchieved := ssHandler.thresholdAchieved(passwordUID)
+		sharemap, retrievingThreshold, thresholdAchieved := ssHandler.thresholdAchieved(passwordUID)
 		if thresholdAchieved {
 			shareslice := make([][]byte, len(sharemap))
 			for _, v := range sharemap {
@@ -168,11 +165,20 @@ func (ssHandler *SSHandler) processShare(publicShare core.PublicShare) error {
 			}
 			//Reconstruct secret
 			secret, err := RecoverSecret(shareslice, retrievingThreshold)
+
+			//Clean shares from map and remove tempKey if no more searches going on
+
 			//decrypting secret
 
+		} else { //If public share does not belong to shares we are waiting for, it means that share is to be hosted for another peer
+
 		}
+<<<<<<< Updated upstream
 =======
 >>>>>>> 41660431b6c78071af6cac166ef2a37604d8a1ca
+=======
+
+>>>>>>> Stashed changes
 	}
 	return nil
 }

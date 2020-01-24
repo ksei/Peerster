@@ -111,18 +111,17 @@ func (ssHandler *SSHandler) storeThreshold(passwordUID string, thresh int) error
 func (ssHandler *SSHandler) retrieveThreshold(passwordUID string) (int, bool) {
 	ssHandler.ssLocker.RLock()
 	defer ssHandler.ssLocker.RUnlock()
-
 	thresh, err := ssHandler.thresholds[passwordUID]
-
 	return thresh, err
-
 }
 
-func (ssHandler *SSHandler) thresholdAchieved(passwordUID string) (map[uint32][]byte, bool) {
+func (ssHandler *SSHandler) thresholdAchieved(passwordUID string) (map[uint32][]byte, int, bool) {
 	ssHandler.ssLocker.RLock()
 	defer ssHandler.ssLocker.RUnlock()
+	ssHandler.thresholdReached <- &passwordUID
 	shareMap := ssHandler.requestedPasswordStatus[passwordUID]
-	return shareMap, ssHandler.thresholds[passwordUID] <= len(shareMap)
+	thresh := ssHandler.thresholds[passwordUID]
+	return shareMap, thresh, thresh <= len(shareMap)
 }
 
 func (ssHandler *SSHandler) storeShare(publicShare core.PublicShare) {
