@@ -26,13 +26,13 @@ type SSHandler struct {
 }
 
 func NewSSHandler(ctx *core.Context) *SSHandler {
-	h:=&SSHandler{
-		ctx:ctx,
-		storedPasswords:         make([]string,0),
+	h := &SSHandler{
+		ctx:                     ctx,
+		storedPasswords:         make([]string, 0),
 		extraInfo:               make(map[string]*extraInfo),
 		thresholds:              make(map[string]int),
-		hostedShares :           make(map[string][]byte),
-		requestedPasswordStatus: make(map[string]map[uint32][]byte) }
+		hostedShares:            make(map[string][]byte),
+		requestedPasswordStatus: make(map[string]map[uint32][]byte)}
 
 	return h
 }
@@ -100,26 +100,9 @@ func (ssHandler *SSHandler) handlePasswordRetrieval(masterKey, account, username
 	ssHandler.storeTemporaryKey(masterKey)
 	go ssHandler.initiateShareCollection(passwordUID)
 	//3. Wait until the threshold of unique received shares is received
-	//we can do better than that
-	for !ssHandler.thresholdAchieved(passwordUID){
-		//wait
-	}
-
 	//4. Decrypt each share generating key by kdf with the same parameters as above
-	shareslice := make([][]byte, len(ssHandler.requestedPasswordStatus[passwordUID]))
-	for _, v := range ssHandler.requestedPasswordStatus[passwordUID] {
-		shareslice = append(shareslice, /*DecryptShare( v )*/)
-	}
-
 	//5. Reconstruct secret
-	secret, err := RecoverSecret(shareslice, ssHandler.thresholds[passwordUID])
-
 	//6. Decrypt reconstructed secret using as key the kdf with same parameters as above
-	clear_pass,err:=ssHandler.decryptPassword(masterKey, account, username, passwordUID, secret)
-	if err != nil {
-		fmt.Println("An error occured while decrypting your password")
-		return
-	}
 	//7. Return password
 }
 
@@ -149,13 +132,6 @@ func (ssHandler *SSHandler) processShare(publicShare core.PublicShare) error {
 		if err != nil {
 			return err
 		}
-<<<<<<< Updated upstream
-	} else { //If public share does not belong to shares we are waiting for, it means that share is to be hosted for another peer
-		ssHandler.storeShare(publicShare)
-
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
 		//Check now if received shares for passwordUID meet the threshold.
 		sharemap, retrievingThreshold, thresholdAchieved := ssHandler.thresholdAchieved(passwordUID)
 		if thresholdAchieved {
@@ -165,7 +141,6 @@ func (ssHandler *SSHandler) processShare(publicShare core.PublicShare) error {
 			}
 			//Reconstruct secret
 			secret, err := RecoverSecret(shareslice, retrievingThreshold)
-
 			//Clean shares from map and remove tempKey if no more searches going on
 
 			//decrypting secret
@@ -173,12 +148,7 @@ func (ssHandler *SSHandler) processShare(publicShare core.PublicShare) error {
 		} else { //If public share does not belong to shares we are waiting for, it means that share is to be hosted for another peer
 
 		}
-<<<<<<< Updated upstream
-=======
->>>>>>> 41660431b6c78071af6cac166ef2a37604d8a1ca
-=======
 
->>>>>>> Stashed changes
 	}
 	return nil
 }
