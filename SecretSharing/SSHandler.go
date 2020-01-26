@@ -13,6 +13,7 @@ const (
 	MIN_SHARES = 6
 )
 
+//SSHandler struct to handle secret sharing within e gossiper network
 type SSHandler struct {
 	ssLocker                sync.RWMutex
 	ctx                     *core.Context
@@ -25,6 +26,7 @@ type SSHandler struct {
 	thresholdReached        chan *string
 }
 
+//NewSSHandler initialized a new SSHandler
 func NewSSHandler(ctx *core.Context) *SSHandler {
 	h := &SSHandler{
 		ctx:                     ctx,
@@ -32,12 +34,15 @@ func NewSSHandler(ctx *core.Context) *SSHandler {
 		extraInfo:               make(map[string]*extraInfo),
 		thresholds:              make(map[string]int),
 		hostedShares:            make(map[string][]byte),
-		requestedPasswordStatus: make(map[string]map[uint32][]byte)}
+		requestedPasswordStatus: make(map[string]map[uint32][]byte),
+		thresholdReached:        make(chan *string, 10),
+	}
 
 	return h
 }
 
-func (ssHandler *SSHandler) handlePasswordInsert(masterKey, account, username, newPassword string) {
+//HandlePasswordInsert handles password insertion by user
+func (ssHandler *SSHandler) HandlePasswordInsert(masterKey, account, username, newPassword string) {
 
 	//1. Assign Password UID and check if already inserted (for now we can start without supporting password upates)
 	if ssHandler.passwordExists(masterKey, account, username) {
@@ -50,7 +55,7 @@ func (ssHandler *SSHandler) handlePasswordInsert(masterKey, account, username, n
 		return
 	}
 	//2. Encrypt password using key derived by master key + account + username
-	encryptedPass, err := ssHandler.encryptPassword(masterKey, account, username, passwordUID, newPassword)
+	encryptedPass, err := ssHandler.encryptPassword(masterKey, passwordUID, newPassword)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -85,7 +90,8 @@ func (ssHandler *SSHandler) handlePasswordInsert(masterKey, account, username, n
 	}
 }
 
-func (ssHandler *SSHandler) handlePasswordRetrieval(masterKey, account, username string) {
+//HandlePasswordRetrieval starts recollection on shamir shares and finally recosntruction
+func (ssHandler *SSHandler) HandlePasswordRetrieval(masterKey, account, username string) {
 	//1. Assign Password UID and check if it exists and it is not currently being retrieved
 	if !ssHandler.passwordExists(masterKey, account, username) {
 		fmt.Println("Incorrect credentials provided, please try again")
@@ -96,6 +102,12 @@ func (ssHandler *SSHandler) handlePasswordRetrieval(masterKey, account, username
 		fmt.Println("An error occured while processing your data")
 		return
 	}
+
+	if ssHandler.isDuplicate(passwordUID) {
+		fmt.Println("Your password is currently being retrieved, please wait")
+		return
+	}
+
 	//2. If yes, proceed by creating a search expanding ring using the uid
 	ssHandler.storeTemporaryKey(masterKey)
 	go ssHandler.initiateShareCollection(passwordUID)
@@ -142,14 +154,20 @@ func (ssHandler *SSHandler) processShare(publicShare core.PublicShare) error {
 			//Reconstruct secret
 			secret, err := RecoverSecret(shareslice, retrievingThreshold)
 			//Clean shares from map and remove tempKey if no more searches going on
-
+			if err != nil {
+				ssHandler.concludeRetrieval(passwordUID)
+				return err
+			}
 			//decrypting secret
-
-		} else { //If public share does not belong to shares we are waiting for, it means that share is to be hosted for another peer
-
+			clearPassword, err := ssHandler.decryptPassword(passwordUID, secret)
+			ssHandler.concludeRetrieval(passwordUID)
+			fmt.Println((string(clearPassword)))
 		}
 
+	} else { //If public share does not belong to shares we are waiting for, it means that share is to be hosted for another peer
+		ssHandler.storeShare(publicShare)
 	}
+
 	return nil
 }
 

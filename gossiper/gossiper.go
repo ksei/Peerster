@@ -10,10 +10,10 @@ import (
 	"github.com/dedis/protobuf"
 	core "github.com/ksei/Peerster/Core"
 	mng "github.com/ksei/Peerster/Mongering"
+	"github.com/ksei/Peerster/SecretSharing"
 	tlc "github.com/ksei/Peerster/TLC"
 	fh "github.com/ksei/Peerster/fileSharing"
 	mh "github.com/ksei/Peerster/messageHandling"
-	"github.com/ksei/Peerster/SecretSharing"
 )
 
 const localAddress = "127.0.0.1"
@@ -86,6 +86,10 @@ func (g *Gossiper) waitForIncomingClientMessage() {
 			go g.fileHandler.InitiateFileRequest(cMessage.Destination, *cMessage.File, []byte(*cMessage.Request))
 		case core.SEARCH_REQUEST:
 			go g.fileHandler.LaunchSearch(cMessage.KeyWords, cMessage.Budget)
+		case core.PASSWORD_RETRIEVE:
+			go g.shamirHandler.HandlePasswordRetrieval(*cMessage.MasterKey, *cMessage.AccountURL, *cMessage.UserName)
+		case core.PASSWORD_INSERT:
+			go g.shamirHandler.HandlePasswordInsert(*cMessage.MasterKey, *cMessage.AccountURL, *cMessage.UserName, *cMessage.NewPassword)
 		case core.PRIVATE_MESSAGE:
 			fmt.Println("CLIENT MESSAGE", cMessage.Text, "dest", *(cMessage.Destination))
 			privateMessage := core.NewPrivateMessage(0, g.ctx.GetHopLimit(), cMessage.Text, g.ctx.Name, *cMessage.Destination)
@@ -171,7 +175,7 @@ func (g *Gossiper) waitForIncomingPeerMessage() {
 		case core.PASSWORD_INSERT:
 			go g.shamirHandler.HandlePublicShare(packet)
 		case core.PASSWORD_RETRIEVE:
-			go g.shamirHandler.HandleShareSearch(packet)
+			go g.shamirHandler.HandleSearchRequest(packet, sender)
 		default:
 			go g.messageHandler.HandleRumourMessage(packet, sender)
 		}

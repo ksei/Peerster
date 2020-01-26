@@ -256,6 +256,10 @@ func (m *Message) GetType(simpleMode bool) int {
 		return PASSWORD_RETRIEVE
 	} else if m.Destination != nil {
 		return PRIVATE_MESSAGE
+	} else if m.MasterKey != nil && m.NewPassword != nil {
+		return PASSWORD_INSERT
+	} else if m.MasterKey != nil && m.NewPassword == nil {
+		return PASSWORD_RETRIEVE
 	} else {
 		return RUMOUR_MESSAGE
 	}

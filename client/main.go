@@ -16,7 +16,8 @@ import (
 const localAddress string = "127.0.0.1"
 
 func main() {
-	args := [7]*string{}
+	args := [11]*string{}
+
 	args[0] = flag.String("keywords", "", "Matching keywords for desired file.")
 	args[1] = flag.String("budget", "", "Searching budget.")
 	args[2] = flag.String("UIPort", "8080", "user interface port(for clients)")
@@ -24,6 +25,10 @@ func main() {
 	args[4] = flag.String("dest", "", "destination for the private message")
 	args[5] = flag.String("file", "", "file to be indexed by the gossiper")
 	args[6] = flag.String("request", "", "request a chunk or metafile of this hash")
+	args[7] = flag.String("masterKey", "", "master key for keester account")
+	args[8] = flag.String("accountName", "", "name of the account a password is to be stored/retrieved for")
+	args[9] = flag.String("username", "", "username belonging to specified account")
+	args[10] = flag.String("password", "", "password to be stored at Keester")
 
 	flag.Parse()
 
@@ -52,7 +57,7 @@ func main() {
 		}
 		budget = &i
 	}
-	message = core.Message{Text: *args[3], Destination: args[4], File: args[5], Request: &requestBytes, KeyWords: args[0], Budget: budget}
+	message = core.Message{Text: *args[3], Destination: args[4], File: args[5], Request: &requestBytes, KeyWords: args[0], Budget: budget, MasterKey: args[7], AccountURL: args[8], UserName: args[9], NewPassword: args[10]}
 
 	toSend := localAddress + ":" + *args[2]
 	updAddr, err1 := net.ResolveUDPAddr("udp", toSend)
@@ -69,7 +74,7 @@ func main() {
 	conn.Write(packetBytes)
 }
 
-func validateInput(args *[7]*string) error {
+func validateInput(args *[11]*string) error {
 	argsCombination := ""
 	for i, arg := range args {
 		if *arg == "" {
@@ -85,7 +90,7 @@ func validateInput(args *[7]*string) error {
 	if err != nil {
 		return err
 	}
-	allowedInputs := []int{24, 28, 18, 19, 23, 80, 112}
+	allowedInputs := []int{384, 448, 288, 304, 368, 1280, 1792, 270, 271}
 
 	for _, ai := range allowedInputs {
 		if int(combination) == ai {

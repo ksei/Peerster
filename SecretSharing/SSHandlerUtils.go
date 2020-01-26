@@ -36,7 +36,7 @@ func (ssHandler *SSHandler) passwordExists(masterKey, account, username string) 
 
 func (ssHandler *SSHandler) getSplittingParams() (int, int, error) {
 	totalPeers := len(ssHandler.ctx.GetPeerOrigins())
-	if totalPeers < 6 {
+	if totalPeers < MIN_SHARES {
 		return 0, 0, errors.New("Not enough peers, please try again at a later time")
 	}
 	peerReplicates := int(math.Sqrt(float64(totalPeers) / 4))
@@ -48,11 +48,6 @@ func (ssHandler *SSHandler) getSplittingParams() (int, int, error) {
 
 func (ssHandler *SSHandler) mapSharesToPeers(totalShares int) (map[string]uint32, error) {
 	peerOriginList := ssHandler.ctx.GetPeerOrigins()
-	totalPeers := len(peerOriginList)
-
-	if totalPeers < MIN_SHARES {
-		return nil, errors.New("Not enough peers")
-	}
 
 	replicateIDMap := make(map[string]uint32)
 	for i, origin := range peerOriginList {
@@ -143,4 +138,27 @@ func (ssHandler *SSHandler) registerPasswordRequest(passwordUID string) {
 	defer ssHandler.ssLocker.Unlock()
 
 	ssHandler.requestedPasswordStatus[passwordUID] = make(map[uint32][]byte)
+}
+
+func (ssHandler *SSHandler) hostShare(publicShare core.PublicShare) {
+	ssHandler.ssLocker.Lock()
+	defer ssHandler.ssLocker.RUnlock()
+
+	if _, exists := ssHandler.hostedShares[publicShare.UID]; exists {
+		fmt.Println("Attempted to overwrite existing share")
+		return
+	}
+
+	ssHandler.hostedShares[publicShare.UID] = publicShare.SecuredShare
+}
+
+func (ssHandler *SSHandler) concludeRetrieval(passwordUID string) {
+	ssHandler.ssLocker.Lock()
+	defer ssHandler.ssLocker.Unlock()
+
+	delete(ssHandler.requestedPasswordStatus, passwordUID)
+	if len(ssHandler.requestedPasswordStatus) == 0 {
+		ssHandler.tempKeyStorage = ""
+	}
+
 }

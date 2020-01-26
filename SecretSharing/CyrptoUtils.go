@@ -36,6 +36,7 @@ func (ssHandler *SSHandler) storeExtraInfo(uid string, salt, nonce []byte) error
 	return nil
 }
 
+//KDF - KeyDistribution Function generates a unique and random encryption key provided a master key and passwordUID extra info
 func KDF(masterKey, extraInfo string) ([]byte, []byte, error) {
 	hash := sha256.New
 
@@ -59,6 +60,7 @@ func KDF(masterKey, extraInfo string) ([]byte, []byte, error) {
 	return key, salt, nil
 }
 
+//RecoverKeyKDF recomputes the ky by the KDF based on a master key and passwordUID
 func RecoverKeyKDF(masterKey string, salt, info []byte) ([]byte, error) {
 	hash := sha256.New
 	secret := []byte(masterKey)
@@ -73,6 +75,7 @@ func RecoverKeyKDF(masterKey string, salt, info []byte) ([]byte, error) {
 	return key, nil
 }
 
+//Enc is an interface method for encrypting a plaintext in byte format using the crypto.aes cipher with a provided key
 func Enc(key, plaintext []byte) ([]byte, []byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -93,6 +96,7 @@ func Enc(key, plaintext []byte) ([]byte, []byte, error) {
 	return ciphertext, nonce, nil
 }
 
+//Dec is an interface method for decrypting a ciphertext in byte format using the crypto.aes cipher with a provided key
 func Dec(key, ciphertext, nonce []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -111,8 +115,8 @@ func Dec(key, ciphertext, nonce []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-func (ssHandler *SSHandler) encryptPassword(masterKey, account, username, passwordUID, newPassword string) ([]byte, error) {
-	key, salt, err := KDF(masterKey, strings.Join([]string{account, username}, ""))
+func (ssHandler *SSHandler) encryptPassword(masterKey, passwordUID, newPassword string) ([]byte, error) {
+	key, salt, err := KDF(masterKey, passwordUID)
 	if err != nil {
 		return nil, err
 	}
@@ -124,6 +128,29 @@ func (ssHandler *SSHandler) encryptPassword(masterKey, account, username, passwo
 	ssHandler.storeExtraInfo(passwordUID, salt, nonce)
 	return encryptedPassword, nil
 
+}
+
+//to debug and check
+func (ssHandler *SSHandler) decryptPassword(passwordUID string, encryptedPassword []byte) ([]byte, error) {
+	ssHandler.ssLocker.RLock()
+	extra, foundExtra := ssHandler.extraInfo[passwordUID]
+	masterKey := ssHandler.tempKeyStorage
+	ssHandler.ssLocker.RUnlock()
+	if !foundExtra || strings.Compare(masterKey, "") == 0 {
+		return nil, errors.New("Error while decrypting password")
+	}
+	key, err := RecoverKeyKDF(masterKey, extra.Salt, []byte(passwordUID))
+
+	if err != nil {
+		return nil, err
+	}
+
+	clearPassword, err := Dec(key, encryptedPassword, extra.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return clearPassword, nil
 }
 
 func (ssHandler *SSHandler) encryptShares(masterKey, passwordUID string, replicateIndex map[string]uint32, shares [][]byte) ([]*core.PublicShare, error) {
@@ -157,6 +184,7 @@ func (ssHandler *SSHandler) encryptShares(masterKey, passwordUID string, replica
 	return publicShares, nil
 }
 
+//GetPasswordUID computer a passwordUID uniquely based on the masterKey, account name and username
 func GetPasswordUID(masterKey, account, username string) (string, error) {
 	uidBytes, err := bcrypt.GenerateFromPassword([]byte(masterKey+account+username), bcrypt.DefaultCost)
 	if err != nil {
@@ -165,6 +193,7 @@ func GetPasswordUID(masterKey, account, username string) (string, error) {
 	return string(uidBytes), nil
 }
 
+//GetShareUID provides a unique ID for each computed share hashing the passwordUID together with the designated destination of the share
 func GetShareUID(passwordUID, origin string) (string, error) {
 	uidBytes, err := bcrypt.GenerateFromPassword([]byte(strings.Join([]string{passwordUID, origin}, "")), bcrypt.DefaultCost)
 	if err != nil {
@@ -212,22 +241,4 @@ func (ssHandler *SSHandler) openShareAndUpdate(passwordUID, masterKey string, pu
 		ssHandler.requestedPasswordStatus[passwordUID][secretShare.replicateID] = secretShare.share
 	}
 	return nil
-}
-
-//to debug and check
-func (ssHandler *SSHandler) decryptPassword(masterKey, account, username, passwordUID string, encryptedPassword []byte) ([]byte, error) {
-
-	extra:=ssHandler.extraInfo[passwordUID]
-	key,err:=RecoverKeyKDF(masterKey, 	extra.Salt, []byte( strings.Join([]string{account, username}, "")) )
-
-	if err != nil {
-		return nil, err
-	}
-
-	clearPassword, err := Dec(key, encryptedPassword, extra.Nonce)
-	if err != nil {
-		return nil, err
-	}
-
-	return clearPassword, nil
 }
