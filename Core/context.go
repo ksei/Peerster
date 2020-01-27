@@ -143,19 +143,13 @@ func RandomPeer(ctx *Context, sender string) string {
 }
 
 //RandomPeers gets n random peers different than the given sender
-func RandomPeers(n int, ctx *Context, sender string) []string {
-	peerList := ctx.GetPeers()
+func RandomPeers(n int, peerList []string) []string {
 	totalPeers := len(peerList)
 	rand.Seed(time.Now().UnixNano())
 	p := rand.Perm(totalPeers)
 	randomPeers := []string{}
-	for _, r := range p[:n] {
-		if peerList[r] == sender {
-			peerList = append(peerList[:r], peerList[r+1:]...)
-			r--
-			continue
-		}
-		randomPeers = append(randomPeers, peerList[r])
+	for i := 0; i < n; i++ {
+		randomPeers = append(randomPeers, peerList[p[i]])
 	}
 	return randomPeers
 }

@@ -17,7 +17,7 @@ func main() {
 	peerList := flag.String("peers", "127.0.0.1:5001", "Comma separated list of known peers to the gossiper")
 	antiEntr := flag.Int("antiEntropy", 10, "Frequency for performing AntiEntropy")
 	simpleMsg := flag.Bool("simple", false, "Run Gossiper in simple broadcast mode")
-	rtimer := flag.Int("rtimer", 0, "Frequency for pulsing route messages")
+	rtimer := flag.Int("rtimer", 3, "Frequency for pulsing route messages")
 	totalPeers := flag.Int("N", 2, "Total number of peers in network")
 	stubbornTimeout := flag.Int("stubbornTimeout", 5, "timeout before resending stubborn messages")
 	hopLimit := flag.Int("hopLimit", 10, "Maximum number of hops specified for private messaging")

@@ -4,70 +4,60 @@ import (
 	"crypto/rand"
 	"errors"
 	"math/big"
-
-	"github.com/dedis/protobuf"
 )
 
-type share struct {
-	x int
-	y *big.Int
+type Share struct {
+	X int
+	Y string
 }
 
 //Field size represents the size of the Galois Field used for share generation, and corresponds to secret size
-const fieldSize string = "18446744073709551557"
+const fieldSize string = "120108331817880498208402974220997642361982874305813858034375860017575261604401803468781848586309259637974588193404514898845697031421429112969955000482498183066089084683313836043275289589999238343502260701561985449399552710349015326719334210697851899957993043127977596076870075883832140454467364356765767338229"
 
 //GenerateShares outputs Nshares, k = threshold out of which are enough for reconstruction of the secret
-func GenerateShares(secret []byte, Nshare int, threshold int) [][]byte {
-	mod, _ := new(big.Int).SetString(fieldSize, 10)
+func GenerateShares(secret []byte, Nshare int, threshold int) ([]*Share, error) {
+	mod, ok := new(big.Int).SetString(fieldSize, 10)
+	if !ok {
+		return nil, errors.New("Could not process modulus into integer")
+	}
 	secretint := new(big.Int).SetBytes(secret)
 
 	coeffs := make([]*big.Int, threshold)
 	coeffs[0] = secretint
-
 	for i := 1; i < threshold; i++ {
 		coeffs[i], _ = rand.Int(rand.Reader, mod)
 	}
 
-	shares := make([]*share, Nshare)
+	shares := make([]*Share, Nshare)
 	for i := 0; i < Nshare; i++ {
-		newShare := &share{}
-		newShare.x = i + 1
+		newShare := &Share{}
+		newShare.X = i + 1
 		xi := big.NewInt(int64(i + 1))
-		newShare.y = big.NewInt(int64(0))
-		newShare.y.Add(newShare.y, coeffs[0])
+		Y := big.NewInt(int64(0))
+		Y.Add(Y, coeffs[0])
 		xtemp := new(big.Int)
 		for j := 1; j < threshold; j++ {
 			xtemp.Exp(xi, big.NewInt(int64(j)), mod)
 			xtemp.Mul(xtemp, coeffs[j])
-			newShare.y.Add(newShare.y, xtemp)
-			newShare.y.Mod(newShare.y, mod)
+			Y.Add(Y, xtemp)
+			Y.Mod(Y, mod)
 		}
+		newShare.Y = Y.String()
 		shares[i] = newShare
 	}
 
-	bytesShares := make([][]byte, Nshare)
-	for s := range shares {
-		bs, _ := protobuf.Encode(s)
-		bytesShares = append(bytesShares, bs)
-	}
-
-	return bytesShares
+	return shares, nil
 
 }
 
 //RecoverSecret reconstructs a secret given a threshold of shares
-func RecoverSecret(byteShares [][]byte, threshold int) ([]byte, error) {
-	mod, _ := new(big.Int).SetString(fieldSize, 10)
-
-	if len(byteShares) < threshold {
-		return nil, errors.New("share: not enough shares to recover secret")
+func RecoverSecret(shares []*Share, threshold int) ([]byte, error) {
+	mod, ok := new(big.Int).SetString(fieldSize, 10)
+	if !ok {
+		return nil, errors.New("Could not process modulus into integer")
 	}
-
-	shares := make([]*share, len(byteShares))
-	for _, bs := range byteShares {
-		var s *share
-		protobuf.Decode(bs, s)
-		shares = append(shares, s)
+	if len(shares) < threshold {
+		return nil, errors.New("share: not enough shares to recover secret")
 	}
 
 	accumulator := big.NewInt(int64(0))
@@ -77,14 +67,18 @@ func RecoverSecret(byteShares [][]byte, threshold int) ([]byte, error) {
 	xj := new(big.Int)
 	xi := new(big.Int)
 	for i, si := range shares {
+		Y, ok := new(big.Int).SetString(si.Y, 10)
+		if !ok {
+			return nil, errors.New("Could not process received value into integer")
+		}
 		nominator = big.NewInt(int64(1))
 		denom = big.NewInt(int64(1))
-		xi.SetInt64(int64(si.x))
+		xi.SetInt64(int64(si.X))
 		for j, sj := range shares {
 			if i == j {
 				continue
 			}
-			xj.SetInt64(int64(sj.x))
+			xj.SetInt64(int64(sj.X))
 			nominator.Mul(nominator, xj)
 			nominator.Mod(nominator, mod)
 			denom.Mul(denom, temp.Sub(xj, xi))
@@ -93,7 +87,7 @@ func RecoverSecret(byteShares [][]byte, threshold int) ([]byte, error) {
 
 		temp.ModInverse(denom, mod)
 		temp.Mul(nominator, temp)
-		temp.Mul(temp, si.y)
+		temp.Mul(temp, Y)
 		accumulator.Add(accumulator, temp)
 		accumulator.Mod(accumulator, mod)
 	}

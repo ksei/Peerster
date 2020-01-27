@@ -153,14 +153,11 @@ func (ssHandler *SSHandler) decryptPassword(passwordUID string, encryptedPasswor
 	return clearPassword, nil
 }
 
-func (ssHandler *SSHandler) encryptShares(masterKey, passwordUID string, replicateIndex map[string]uint32, shares [][]byte) ([]*core.PublicShare, error) {
+func (ssHandler *SSHandler) encryptShares(masterKey, passwordUID string, replicateIndex map[string]uint32, shares []*Share) ([]*core.PublicShare, error) {
 	var publicShares = []*core.PublicShare{}
 	for origin, index := range replicateIndex {
 
-		shareUID, err := GetShareUID(passwordUID, origin)
-		if err != nil {
-			return nil, err
-		}
+		shareUID := GetShareUID(passwordUID, origin)
 
 		key, salt, err := KDF(masterKey, shareUID)
 		if err != nil {
@@ -177,7 +174,7 @@ func (ssHandler *SSHandler) encryptShares(masterKey, passwordUID string, replica
 			return nil, err
 		}
 
-		publicShares = append(publicShares, ssHandler.NewPublic(origin, shareUID, encryptedShare))
+		publicShares = append(publicShares, ssHandler.NewPublic(shareUID, origin, encryptedShare))
 		ssHandler.storeExtraInfo(shareUID, salt, nonce)
 	}
 
@@ -194,24 +191,20 @@ func GetPasswordUID(masterKey, account, username string) (string, error) {
 }
 
 //GetShareUID provides a unique ID for each computed share hashing the passwordUID together with the designated destination of the share
-func GetShareUID(passwordUID, origin string) (string, error) {
-	uidBytes, err := bcrypt.GenerateFromPassword([]byte(strings.Join([]string{passwordUID, origin}, "")), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	shareUID := string(uidBytes)
-
-	return shareUID, nil
+func GetShareUID(passwordUID, origin string) string {
+	uidBytes := sha256.Sum256([]byte(strings.Join([]string{passwordUID, origin}, "")))
+	shareUID := string(uidBytes[:])
+	return shareUID
 
 }
 
 func (ssHandler *SSHandler) openShareAndUpdate(passwordUID, masterKey string, publicShare core.PublicShare) error {
+	ssHandler.ssLocker.Lock()
+	defer ssHandler.ssLocker.Unlock()
 	shareUID := publicShare.UID
 	sender := publicShare.Origin
 	encryptedSecretBytes := publicShare.SecuredShare
-	ssHandler.ssLocker.RLock()
 	extraInfo, exists := ssHandler.extraInfo[shareUID]
-	ssHandler.ssLocker.RUnlock()
 
 	if !exists {
 		return errors.New("Could not find share information")
@@ -231,14 +224,12 @@ func (ssHandler *SSHandler) openShareAndUpdate(passwordUID, masterKey string, pu
 		return errors.New("Error while decoding share" + err.Error())
 	}
 
-	if strings.Compare(sender, secretShare.sentTo) != 0 {
+	if strings.Compare(sender, secretShare.SentTo) != 0 {
 		return errors.New("Malicious share received")
 	}
 
-	ssHandler.ssLocker.Lock()
-	defer ssHandler.ssLocker.Unlock()
-	if _, exists := ssHandler.requestedPasswordStatus[passwordUID][secretShare.replicateID]; !exists {
-		ssHandler.requestedPasswordStatus[passwordUID][secretShare.replicateID] = secretShare.share
+	if _, exists := ssHandler.requestedPasswordStatus[passwordUID][secretShare.ReplicateID]; !exists {
+		ssHandler.requestedPasswordStatus[passwordUID][secretShare.ReplicateID] = secretShare.Share
 	}
 	return nil
 }

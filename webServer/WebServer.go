@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -63,10 +65,10 @@ func (webServer *WebServer) Launch(gossiperAddress string) {
 	}
 
 	fmt.Println("Using port:", listener.Addr().(*net.TCPAddr).Port)
-	// err = exec.Command("xdg-open", "http://localhost:"+strconv.Itoa(listener.Addr().(*net.TCPAddr).Port)).Start()
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
+	err = exec.Command("xdg-open", "http://localhost:"+strconv.Itoa(listener.Addr().(*net.TCPAddr).Port)).Start()
+	if err != nil {
+		fmt.Println(err)
+	}
 	panic(http.Serve(listener, nil))
 }
 

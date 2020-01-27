@@ -200,6 +200,7 @@ type PublicShare struct {
 	HopLimit     uint32
 	UID          string
 	SecuredShare []byte
+	Requested    bool
 }
 
 //ShareRequest serves as a struct designated for sending requests in an expanding ring manner, in order to reconstruct a password through received shares

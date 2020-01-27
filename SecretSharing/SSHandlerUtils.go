@@ -11,27 +11,30 @@ import (
 )
 
 //NewPublic instantiates a new SecretShare
-func (ssHandler *SSHandler) NewPublic(shareUid, dest string, secShareToAdd []byte) *core.PublicShare {
+func (ssHandler *SSHandler) NewPublic(shareUID, dest string, secShareToAdd []byte) *core.PublicShare {
 	share := &core.PublicShare{
 		Origin:       ssHandler.ctx.Name,
 		Destination:  dest,
 		HopLimit:     ssHandler.ctx.GetHopLimit(),
-		UID:          shareUid,
+		UID:          shareUID,
 		SecuredShare: secShareToAdd,
+		Requested:    false,
 	}
 	return share
 }
 
-func (ssHandler *SSHandler) passwordExists(masterKey, account, username string) bool {
+func (ssHandler *SSHandler) passwordExists(masterKey, account, username string) (string, bool) {
 	ssHandler.ssLocker.RLock()
 	defer ssHandler.ssLocker.RUnlock()
 	found := false
+	ret := ""
 	for _, storedPassword := range ssHandler.storedPasswords {
-		if bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(masterKey+account+username)) != nil {
+		if bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(masterKey+account+username)) == nil {
 			found = true
+			ret = storedPassword
 		}
 	}
-	return found
+	return ret, found
 }
 
 func (ssHandler *SSHandler) getSplittingParams() (int, int, error) {
@@ -41,7 +44,7 @@ func (ssHandler *SSHandler) getSplittingParams() (int, int, error) {
 	}
 	peerReplicates := int(math.Sqrt(float64(totalPeers) / 4))
 	totalShares := totalPeers / peerReplicates
-	threshold := totalShares / 3
+	threshold := 2 * totalShares / 3
 
 	return totalShares, threshold, nil
 }
@@ -60,8 +63,8 @@ func (ssHandler *SSHandler) mapSharesToPeers(totalShares int) (map[string]uint32
 	return replicateIDMap, nil
 }
 
-func (ssHandler *SSHandler) distributePublicShares(publicSHares []*core.PublicShare) error {
-	for _, pubShare := range publicSHares {
+func (ssHandler *SSHandler) distributePublicShares(publicShares []*core.PublicShare) error {
+	for _, pubShare := range publicShares {
 		gossipPacket := &core.GossipPacket{
 			PublicSecretShare: pubShare,
 		}
@@ -79,11 +82,7 @@ func (ssHandler *SSHandler) awaitingShare(publicShare core.PublicShare) (string,
 	sender := publicShare.Origin
 	shareUID := publicShare.UID
 	for passwordUID := range ssHandler.requestedPasswordStatus {
-		UIDtoCompare, err := GetShareUID(passwordUID, sender)
-		if err != nil {
-			fmt.Println(err)
-			return "", false
-		}
+		UIDtoCompare := GetShareUID(passwordUID, sender)
 		if strings.Compare(UIDtoCompare, shareUID) == 0 {
 			return passwordUID, true
 		}
@@ -110,10 +109,9 @@ func (ssHandler *SSHandler) retrieveThreshold(passwordUID string) (int, bool) {
 	return thresh, err
 }
 
-func (ssHandler *SSHandler) thresholdAchieved(passwordUID string) (map[uint32][]byte, int, bool) {
+func (ssHandler *SSHandler) thresholdAchieved(passwordUID string) (map[uint32]*Share, int, bool) {
 	ssHandler.ssLocker.RLock()
 	defer ssHandler.ssLocker.RUnlock()
-	ssHandler.thresholdReached <- &passwordUID
 	shareMap := ssHandler.requestedPasswordStatus[passwordUID]
 	thresh := ssHandler.thresholds[passwordUID]
 	return shareMap, thresh, thresh <= len(shareMap)
@@ -137,7 +135,7 @@ func (ssHandler *SSHandler) registerPasswordRequest(passwordUID string) {
 	ssHandler.ssLocker.Lock()
 	defer ssHandler.ssLocker.Unlock()
 
-	ssHandler.requestedPasswordStatus[passwordUID] = make(map[uint32][]byte)
+	ssHandler.requestedPasswordStatus[passwordUID] = make(map[uint32]*Share)
 }
 
 func (ssHandler *SSHandler) hostShare(publicShare core.PublicShare) {

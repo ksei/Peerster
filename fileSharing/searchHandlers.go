@@ -126,10 +126,17 @@ func (fH *FileHandler) repeatLocalSearchRequests(searchRequest *core.SearchReque
 
 func (fH *FileHandler) forwardSearchRequest(sender string, searchRequest *core.SearchRequest, totalBudget uint64) {
 	peerList := fH.ctx.GetPeers()
+	if strings.Compare(sender, fH.ctx.Address.String()) != 0 {
+		for i, peer := range peerList {
+			if strings.Compare(sender, peer) == 0 {
+				peerList = append(peerList[:i], peerList[i+1:]...)
+			}
+		}
+	}
 	totalPeers := len(peerList)
 	if int(totalBudget) < totalPeers {
 		searchRequest.Budget = 1
-		for _, peer := range core.RandomPeers(int(totalBudget), fH.ctx, sender) {
+		for _, peer := range core.RandomPeers(int(totalBudget), peerList) {
 			go fH.ctx.SendPacketToPeer(core.GossipPacket{SearchRequest: searchRequest}, peer)
 		}
 	} else {

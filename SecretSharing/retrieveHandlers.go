@@ -36,11 +36,30 @@ func (ssHandler *SSHandler) expandRing(shareRequest *core.ShareRequest) {
 		case passwordUID := <-ssHandler.thresholdReached:
 			if strings.Compare(*passwordUID, shareRequest.RequestUID) == 0 {
 				fmt.Println("All Shares Retrieved")
+				sharemap, retrievingThreshold, _ := ssHandler.thresholdAchieved(*passwordUID)
+				shareslice := []*Share{}
+				for _, v := range sharemap {
+					shareslice = append(shareslice, v)
+				}
+				//Reconstruct secret
+				secret, err := RecoverSecret(shareslice, retrievingThreshold)
+				//Clean shares from map and remove tempKey if no more searches going on
+				if err != nil {
+					ssHandler.concludeRetrieval(*passwordUID)
+					fmt.Println(err)
+				}
+				//decrypting secret
+				clearPassword, err := ssHandler.decryptPassword(*passwordUID, secret)
+				ssHandler.concludeRetrieval(*passwordUID)
+				if err != nil {
+					fmt.Println(err)
+				}
+				fmt.Println((string(clearPassword)))
 				return
 			}
 		case <-time.After(1 * time.Second):
 			budget = 2 * budget
-			if budget > 128 {
+			if budget > 256 {
 				fmt.Println("Aborting Search: Maximum budget exhausted...")
 				return
 			}
@@ -51,10 +70,18 @@ func (ssHandler *SSHandler) expandRing(shareRequest *core.ShareRequest) {
 
 func (ssHandler *SSHandler) forwardSearchRequest(sender string, shareRequest *core.ShareRequest, totalBudget uint64) {
 	peerList := ssHandler.ctx.GetPeers()
+	if strings.Compare(sender, ssHandler.ctx.Address.String()) != 0 {
+		for i, peer := range peerList {
+			if strings.Compare(sender, peer) == 0 {
+				peerList = append(peerList[:i], peerList[i+1:]...)
+				break
+			}
+		}
+	}
 	totalPeers := len(peerList)
 	if int(totalBudget) < totalPeers {
 		shareRequest.Budget = 1
-		for _, peer := range core.RandomPeers(int(totalBudget), ssHandler.ctx, sender) {
+		for _, peer := range core.RandomPeers(int(totalBudget), peerList) {
 			go ssHandler.ctx.SendPacketToPeer(core.GossipPacket{ShareRequest: shareRequest}, peer)
 		}
 	} else {
@@ -83,6 +110,7 @@ func (ssHandler *SSHandler) HandleSearchRequest(packet core.GossipPacket, sender
 	// go fH.cacheRequest(*searchRequest)
 	publicShare, found := ssHandler.searchHostedShares(*shareRequest)
 	if found {
+		publicShare.Requested = true
 		gossipPacket := &core.GossipPacket{
 			PublicSecretShare: publicShare,
 		}
@@ -95,11 +123,8 @@ func (ssHandler *SSHandler) HandleSearchRequest(packet core.GossipPacket, sender
 }
 
 func (ssHandler *SSHandler) searchHostedShares(request core.ShareRequest) (*core.PublicShare, bool) {
-	shareUID, err := GetShareUID(request.RequestUID, ssHandler.ctx.Name)
-	if err != nil {
-		return nil, false
-	}
-
+	shareUID := GetShareUID(request.RequestUID, ssHandler.ctx.Name)
+	fmt.Println("Searching for :", shareUID)
 	secretShare, found := ssHandler.hostedShares[shareUID]
 	if found {
 		return ssHandler.NewPublic(shareUID, request.Origin, secretShare), true

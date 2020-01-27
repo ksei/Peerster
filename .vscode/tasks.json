@@ -1,0 +1,46 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run 7 Peer Network",
+            "dependsOn": ["Run Alice", "Run Bob", "Run Charlie", "Run Daniel", "Run Eric", "Run Frank", "Run Gary"]
+        },
+        {
+            "label" : "Run Alice",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5000' -UIPort='8080' -name='Alice' -peers='127.0.0.1:5001,127.0.0.1:5002,127.0.0.1:5003,127.0.0.1:5004,127.0.0.1:5005,127.0.0.1:5006'"
+        },
+        {
+            "label" : "Run Bob",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5001' -UIPort='8081' -name='Bob' -peers='127.0.0.1:5000,127.0.0.1:5002,127.0.0.1:5003,127.0.0.1:5004,127.0.0.1:5005,127.0.0.1:5006'"
+        },
+        {
+            "label" : "Run Charlie",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5002' -UIPort='8082' -name='Charlie' -peers='127.0.0.1:5000,127.0.0.1:5001,127.0.0.1:5003,127.0.0.1:5004,127.0.0.1:5005,127.0.0.1:5006'"
+        },
+        {
+            "label" : "Run Daniel",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5003' -UIPort='8083' -name='Daniel' -peers='127.0.0.1:5000,127.0.0.1:5001,127.0.0.1:5002,127.0.0.1:5004,127.0.0.1:5005,127.0.0.1:5006'"
+        },
+        {
+            "label" : "Run Eric",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5004' -UIPort='8084' -name='Eric' -peers='127.0.0.1:5000,127.0.0.1:5001,127.0.0.1:5002,127.0.0.1:5003,127.0.0.1:5005,127.0.0.1:5006'"
+        },
+        {
+            "label" : "Run Frank",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5005' -UIPort='8085' -name='Frank' -peers='127.0.0.1:5000,127.0.0.1:5001,127.0.0.1:5002,127.0.0.1:5003,127.0.0.1:5004,127.0.0.1:5006'"
+        },
+        {
+            "label" : "Run Gary",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5006' -UIPort='8086' -name='Gary' -peers='127.0.0.1:5006,127.0.0.1:5001,127.0.0.1:5002,127.0.0.1:5003,127.0.0.1:5004,127.0.0.1:5005'"
+        },
+    ]
+}
