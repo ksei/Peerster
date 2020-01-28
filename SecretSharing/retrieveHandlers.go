@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+	"encoding/hex"
 
 	core "github.com/ksei/Peerster/Core"
 )
@@ -79,7 +80,9 @@ func (ssHandler *SSHandler) forwardSearchRequest(sender string, shareRequest *co
 		}
 	}
 	totalPeers := len(peerList)
-	if int(totalBudget) < totalPeers {
+	if(totalPeers<1){
+		return
+	}else if int(totalBudget) < totalPeers {
 		shareRequest.Budget = 1
 		for _, peer := range core.RandomPeers(int(totalBudget), peerList) {
 			go ssHandler.ctx.SendPacketToPeer(core.GossipPacket{ShareRequest: shareRequest}, peer)
@@ -124,7 +127,7 @@ func (ssHandler *SSHandler) HandleSearchRequest(packet core.GossipPacket, sender
 
 func (ssHandler *SSHandler) searchHostedShares(request core.ShareRequest) (*core.PublicShare, bool) {
 	shareUID := GetShareUID(request.RequestUID, ssHandler.ctx.Name)
-	fmt.Println("Searching for :", shareUID)
+	fmt.Println("Searching for :", hex.EncodeToString( []byte(shareUID)))
 	secretShare, found := ssHandler.hostedShares[shareUID]
 	if found {
 		return ssHandler.NewPublic(shareUID, request.Origin, secretShare), true
