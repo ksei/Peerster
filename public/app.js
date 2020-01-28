@@ -28,6 +28,7 @@ new Vue({
         var self = this;
         this.activeChat = 'Group';
         this.ws = new WebSocket('ws://' + window.location.host + '/ws');
+        console.log('ws://' + window.location.host + '/ws')
         this.ws.addEventListener('message', function(e) {
             var msg = JSON.parse(e.data);
             console.log("Hey");

@@ -19,6 +19,7 @@ func (ssHandler *SSHandler) NewPublic(shareUID, dest string, secShareToAdd []byt
 		UID:          shareUID,
 		SecuredShare: secShareToAdd,
 		Requested:    false,
+		Confirmation: false,
 	}
 	return share
 }
@@ -59,21 +60,9 @@ func (ssHandler *SSHandler) mapSharesToPeers(totalShares int) (map[string]uint32
 		}
 		replicateIDMap[origin] = uint32(i % totalShares)
 	}
-
+	ssHandler.ssLocker.Lock()
+	defer ssHandler.ssLocker.Unlock()
 	return replicateIDMap, nil
-}
-
-func (ssHandler *SSHandler) distributePublicShares(publicShares []*core.PublicShare) error {
-	for _, pubShare := range publicShares {
-		gossipPacket := &core.GossipPacket{
-			PublicSecretShare: pubShare,
-		}
-		err := ssHandler.ctx.SendPacketToPeerViaRouting(*gossipPacket, pubShare.Destination)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (ssHandler *SSHandler) awaitingShare(publicShare core.PublicShare) (string, bool) {
@@ -81,7 +70,7 @@ func (ssHandler *SSHandler) awaitingShare(publicShare core.PublicShare) (string,
 	defer ssHandler.ssLocker.RUnlock()
 	sender := publicShare.Origin
 	shareUID := publicShare.UID
-	for passwordUID := range ssHandler.requestedPasswordStatus {
+	for passwordUID := range ssHandler.awaitingPasswords {
 		UIDtoCompare := GetShareUID(passwordUID, sender)
 		if strings.Compare(UIDtoCompare, shareUID) == 0 {
 			return passwordUID, true
@@ -109,12 +98,26 @@ func (ssHandler *SSHandler) retrieveThreshold(passwordUID string) (int, bool) {
 	return thresh, err
 }
 
-func (ssHandler *SSHandler) thresholdAchieved(passwordUID string) (map[uint32]*Share, int, bool) {
+func (ssHandler *SSHandler) thresholdAchievedAndStillWaiting(passwordUID string) bool {
+	ssHandler.ssLocker.RLock()
+	defer ssHandler.ssLocker.RUnlock()
+	_, waiting := ssHandler.awaitingPasswords[passwordUID]
+	return len(ssHandler.requestedPasswordStatus[passwordUID]) >= ssHandler.thresholds[passwordUID] && waiting
+}
+
+func (ssHandler *SSHandler) stopWaiting(passwordUID string) {
+	ssHandler.ssLocker.Lock()
+	defer ssHandler.ssLocker.Unlock()
+	delete(ssHandler.awaitingPasswords, passwordUID)
+	ssHandler.thresholdReached <- &passwordUID
+}
+
+func (ssHandler *SSHandler) getReconstructionParams(passwordUID string) (map[uint32]*Share, int) {
 	ssHandler.ssLocker.RLock()
 	defer ssHandler.ssLocker.RUnlock()
 	shareMap := ssHandler.requestedPasswordStatus[passwordUID]
 	thresh := ssHandler.thresholds[passwordUID]
-	return shareMap, thresh, thresh <= len(shareMap)
+	return shareMap, thresh
 }
 
 func (ssHandler *SSHandler) storeShare(publicShare core.PublicShare) {
@@ -134,7 +137,7 @@ func (ssHandler *SSHandler) storeTemporaryKey(masterKey string) {
 func (ssHandler *SSHandler) registerPasswordRequest(passwordUID string) {
 	ssHandler.ssLocker.Lock()
 	defer ssHandler.ssLocker.Unlock()
-
+	ssHandler.awaitingPasswords[passwordUID] = true
 	ssHandler.requestedPasswordStatus[passwordUID] = make(map[uint32]*Share)
 }
 
@@ -155,8 +158,51 @@ func (ssHandler *SSHandler) concludeRetrieval(passwordUID string) {
 	defer ssHandler.ssLocker.Unlock()
 
 	delete(ssHandler.requestedPasswordStatus, passwordUID)
+	fmt.Println(len(ssHandler.requestedPasswordStatus[passwordUID]))
 	if len(ssHandler.requestedPasswordStatus) == 0 {
 		ssHandler.tempKeyStorage = ""
 	}
+
+}
+
+func (ssHandler *SSHandler) communicateError(err error) {
+	res := err.Error()
+	ssHandler.ctx.GUImessageChannel <- &core.GUIPacket{PasswordOpResult: &res}
+	fmt.Println(err)
+}
+
+func (ssHandler *SSHandler) updateRoutingTable() {
+	ssHandler.ssLocker.RLock()
+	defer ssHandler.ssLocker.RUnlock()
+	for inactivePeer := range ssHandler.confirmationMap {
+		ssHandler.ctx.RemoveInactiveDestination(inactivePeer)
+	}
+}
+
+func (ssHandler *SSHandler) clearResidues(passwordUID string) {
+	ssHandler.ssLocker.Lock()
+	defer ssHandler.ssLocker.Unlock()
+
+	ssHandler.confirmationMap = make(map[string]string)
+	delete(ssHandler.thresholds, passwordUID)
+	delete(ssHandler.extraInfo, passwordUID)
+	for i, password := range ssHandler.storedPasswords {
+		if strings.Compare(password, passwordUID) == 0 {
+			ssHandler.storedPasswords = append(ssHandler.storedPasswords[:i], ssHandler.storedPasswords[i+1:]...)
+			return
+		}
+	}
+}
+
+func (ssHandler *SSHandler) handleError(passwordUID string, err error) {
+	ssHandler.communicateError(err)
+	go ssHandler.clearResidues(passwordUID)
+}
+
+func (ssHandler *SSHandler) archivePassword(passwordUID string) {
+	ssHandler.ssLocker.Lock()
+	defer ssHandler.ssLocker.Unlock()
+
+	ssHandler.archivedPasswords = append(ssHandler.archivedPasswords, passwordUID)
 
 }

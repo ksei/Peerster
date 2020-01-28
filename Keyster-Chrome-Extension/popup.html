@@ -1,0 +1,238 @@
+<!-- This extension is created for assignment purposes to learn 
+     about concepts related to network security and encryption -->
+
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <title> </title>
+
+    <meta charset="UTF-8" />
+
+    <!-- Bootstrap imports -->
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/popup.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+
+<body>
+    <div class="container">
+        <h3 class="heading">Keyster</h3>
+    </div>
+
+    <!--Binding Panel-->
+    <div class="container" id="bindingPanel">
+        <div class="form-group">
+            <label class="control-label" for="site" name="siteLabel">
+                <span class="glyphicon glyphicon-globe"></span> Current Site
+            </label>
+            <div>
+                <input type="text" class="form-control readonly" name="site" disabled>
+            </div>
+        </div>
+        <div class="form-group buttonSection">
+            <div class="col-sm-offset-2 col-sm-10">
+                <button type="submit" class="btn btn-primary" id="bindButton">Bind</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Login Panel -->
+    <div class="container" id="registerPanel">
+        <div class="form-group">
+            <label class="control-label" for="site" id="siteLabel">
+                <span class="glyphicon glyphicon-globe"></span> Current Site
+            </label>
+            <div>
+                <input type="text" class="form-control readonly" name="site" disabled>
+            </div>
+        </div>
+
+        <p id="alertMsg">Please fill with your Username for this account and your Master Password</p>
+
+        <div class="form-group">
+            <label class="control-label" for="usr" id="userLabel">
+                <span class="glyphicon glyphicon-user"></span> Username
+            </label>
+            <div>
+                <input type="text" class="form-control" id="usr" placeholder="Enter Desired Username">
+                <p id="errorStatus"></p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="control-label" for="pwd" id="masterLabel">
+                <span class="glyphicon glyphicon-lock"></span> Master Password
+            </label>
+            <div>
+                <input type="password" class="form-control" id="pwd" placeholder="Enter Master Password">
+            </div>
+        </div>
+
+        <p id="errorStatus"></p>
+
+        <div class="form-group buttonSection">
+            <div class="col-sm-offset-2 col-sm-10">
+                <button type="submit" class="btn btn-primary" id="loginButton">Retrieve Password</button>
+                <button type="submit" class="btn btn-success" id="switchToCreateButton">+</button>
+                <button type="submit" class="btn btn-danger" id="switchToDeleteButton">-</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Create Panel -->
+    <div class="container" id="createPanel">
+        <div class="form-group">
+            <label class="control-label" for="site" id="siteLabel">
+                <span class="glyphicon glyphicon-globe"></span> Current Site
+            </label>
+            <div>
+                <input type="text" class="form-control readonly" name="site" disabled>
+            </div>
+        </div>
+
+        <p id="alertMsg">Please fill with your new password below</p>
+
+        <div class="form-group">
+            <label class="control-label" for="reqUsr" id="userLabel">
+                <span class="glyphicon glyphicon-user"></span> Username
+            </label>
+            <div>
+                <input type="text" class="form-control" id="reqUsr" placeholder="Enter Desired Username">
+                <p id="errorStatus"></p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="control-label" for="reqPwd" id="masterLabel">
+                <span class="glyphicon glyphicon-lock"></span> Master Password
+            </label>
+            <div>
+                <input type="password" class="form-control" id="reqPwd" placeholder="Enter Master Password">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="control-label" for="newPass" id="passLabel">
+                <span class="glyphicon glyphicon-lock"></span> Site Password
+            </label>
+            <div>
+                <input type="password" class="form-control" id="newPass" placeholder="Enter Site Password">
+            </div>
+        </div>
+
+        <p id="createErrorStatus"></p>
+
+        <div class="form-group buttonSection">
+            <div class="col-sm-offset-2 col-sm-10">
+                <button type="submit" class="btn btn-success" id="createButton">Store Password</button>
+            </div>
+        </div>
+
+
+        <!-- PASS GENERATOR -->
+        <div id="gen">
+            <p class="msg">Generate Passwords For Any Account</p>
+            <div id="slider" data-role="rangeslider">
+                <label for="plength">Length: </label>
+                <p id="pLen">16</p>
+                <input type="range" name="plength" id="plength" value="16" min="8" max="32" step="8">
+            </div>
+
+            <div id="check">
+                <div class="checkbox disabled">
+                    <label><input class="rdonly" type="checkbox" name="lower" id="lower" checked disabled>Lowercase
+                        Character</label>
+                </div>
+                <div class="checkbox">
+                    <label><input type="checkbox" name="upper" id="upper">Uppercase Character</label>
+                </div>
+                <div class="checkbox">
+                    <label><input type="checkbox" name="numeric" id="numeric">Numeric Symbols</label>
+                </div>
+                <div class="checkbox">
+                    <label><input type="checkbox" name="spChar" id="spChar">Special Character</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="gpwd" id="passLabel">
+                    <span class="glyphicon glyphicon-lock"></span> Generate Password:
+                </label>
+                <div>
+                    <input type="text" class="form-control rdonly" id="gpwd" disabled>
+                    <button type="button" class="btn btn-default" class="copyButton" id="copyButtonGen"><span
+                            class="glyphicon glyphicon-copy"></span></button>
+                </div>
+
+                <div class="form-group buttonSection">
+                    <div class="col-sm-offset-2 col-sm-10">
+                        <button type="submit" class="btn btn-primary" id="generate">Generate</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Panel -->
+    <div class="container" id="deletePanel">
+        <div class="heading">
+            <h4>Please verify the deletion of your credentials</h4>
+        </div>
+        <div class="form-group buttonSection">
+            <div class="col-sm-offset-2 col-sm-10">
+                <button type="submit" class="btn btn-danger" id="deleteButton">Yes, Delete</button>
+                <button type="submit" class="btn btn-primary" id="cancelDeleteButton">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!--Please Wait Panel-->
+    <div class="container" id="pleaseWaitPanel">
+        <div class="form-group" id="pleaseWaitMessage">
+        </div>
+    </div>
+
+
+    <!-- Result Panel -->
+    <div class="container" id="resultPanel">
+        <!-- Error Result -->
+        <div id="errorResult">
+            <p class="msg">Your request Failed:</p>
+            <p class="msg" id="errorResultMsg"></p>
+        </div>
+        <!-- Success Result -->
+        <div id="successResult">
+            <p class="msg" id="successMsg"></p>
+        </div>
+    </div>
+
+    <!-- User Panel -->
+    <div class="container" id="userPanel">
+        <!-- MANAGED -->
+        <div id="managed">
+            <p class="msg">Your password For this website:</p>
+            <div class="form-group">
+                <label class="control-label" for="copyPass" id="passLabel">
+                    <span class="glyphicon glyphicon-lock"></span> Password:
+                </label>
+                <div>
+                    <input type="password" class="form-control rdonly" id="copyPass" disabled>
+                    <button type="button" class="btn btn-default" class="copyButton" id="copyButtonPass"><span
+                            class="glyphicon glyphicon-copy"></span></button>
+                    <br>
+                </div>
+            </div>
+        </div>
+        <div class="form-group buttonSection">
+        </div>
+    </div>
+</body>
+
+<!-- jQuery library & Other JavaScript Imported Script -->
+<script src="js/jquery.js"></script>
+<script src="js/script.js"></script>
+
+</html>

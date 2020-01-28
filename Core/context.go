@@ -167,6 +167,14 @@ func (ctx *Context) UpdateDSDV(origin, latestIP string, isRouteMessage bool) {
 	}
 }
 
+//RemoveInactiveDestination deletes a destination from the routing table
+func (ctx *Context) RemoveInactiveDestination(origin string) {
+	ctx.dsdvLocker.Lock()
+	defer ctx.dsdvLocker.Unlock()
+
+	delete(ctx.DSDVector, origin)
+}
+
 //RetrieveDestinationRoute finds the next hop to follow given a destination
 func (ctx *Context) RetrieveDestinationRoute(destination string) (int, string) {
 	if strings.Compare(destination, ctx.Name) == 0 {

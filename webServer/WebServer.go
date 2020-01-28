@@ -74,6 +74,8 @@ func (webServer *WebServer) Launch(gossiperAddress string) {
 
 //Handles Connections with connected clients
 func (webServer *WebServer) handleConnections(w http.ResponseWriter, r *http.Request) {
+	webServer.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+
 	// Upgrade initial GET request to a websocket
 	ws, err := webServer.upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -153,6 +155,14 @@ func (webServer *WebServer) handleSocketPackets() {
 			go webServer.handleIncomingFileRequest(msg)
 		case "SearchRequest":
 			go webServer.handleNewSearchRequest(msg)
+		case "PasswordRequest":
+			fmt.Println(msg.Account, msg.Username, msg.MasterKey)
+			go webServer.handlePasswordRequest(msg)
+		case "StorePasswordRequest":
+			go webServer.handleStorePasswordRequest(msg)
+		case "PasswordDelete":
+			fmt.Println(msg.Account, msg.Username, msg.MasterKey, msg.Password)
+			go webServer.handlePasswordDelete(msg)
 		default:
 			go webServer.handleIncomingMessage(msg)
 		}
@@ -170,6 +180,21 @@ func (webServer *WebServer) handleIncomingMessage(msg sockPacket) {
 
 func (webServer *WebServer) handleNewSearchRequest(req sockPacket) {
 	message := core.Message{KeyWords: &req.Keywords}
+	webServer.sendMessageToGossiper(message)
+}
+
+func (webServer *WebServer) handlePasswordRequest(req sockPacket) {
+	message := core.Message{AccountURL: &req.Account, UserName: &req.Username, MasterKey: &req.MasterKey}
+	webServer.sendMessageToGossiper(message)
+}
+
+func (webServer *WebServer) handleStorePasswordRequest(req sockPacket) {
+	message := core.Message{AccountURL: &req.Account, UserName: &req.Username, MasterKey: &req.MasterKey, NewPassword: &req.Password}
+	webServer.sendMessageToGossiper(message)
+}
+
+func (webServer *WebServer) handlePasswordDelete(req sockPacket) {
+	message := core.Message{AccountURL: &req.Account, DeleteUser: &req.Username, MasterKey: &req.MasterKey}
 	webServer.sendMessageToGossiper(message)
 }
 

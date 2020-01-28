@@ -4,6 +4,10 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Run 8 Peer Network",
+            "dependsOn": ["Run Alice", "Run Bob", "Run Charlie", "Run Daniel", "Run Eric", "Run Frank", "Run Gary", "Run Hulio"]
+        },
+        {
             "label": "Run 7 Peer Network",
             "dependsOn": ["Run Alice", "Run Bob", "Run Charlie", "Run Daniel", "Run Eric", "Run Frank", "Run Gary"]
         },
@@ -41,6 +45,11 @@
             "label" : "Run Gary",
             "type" :  "shell",
             "command" : "go run main.go -gossipAddr='127.0.0.1:5006' -UIPort='8086' -name='Gary' -peers='127.0.0.1:5006,127.0.0.1:5001,127.0.0.1:5002,127.0.0.1:5003,127.0.0.1:5004,127.0.0.1:5005'"
+        },
+        {
+            "label" : "Run Hulio",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5007' -UIPort='8087' -name='Hulio' -peers='127.0.0.1:5006,127.0.0.1:5001'"
         },
     ]
 }

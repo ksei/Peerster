@@ -1,6 +1,7 @@
 package SecretSharing
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -37,7 +38,7 @@ func (ssHandler *SSHandler) expandRing(shareRequest *core.ShareRequest) {
 		case passwordUID := <-ssHandler.thresholdReached:
 			if strings.Compare(*passwordUID, shareRequest.RequestUID) == 0 {
 				fmt.Println("All Shares Retrieved")
-				sharemap, retrievingThreshold, _ := ssHandler.thresholdAchieved(*passwordUID)
+				sharemap, retrievingThreshold := ssHandler.getReconstructionParams(*passwordUID)
 				shareslice := []*Share{}
 				for _, v := range sharemap {
 					shareslice = append(shareslice, v)
@@ -47,21 +48,23 @@ func (ssHandler *SSHandler) expandRing(shareRequest *core.ShareRequest) {
 				//Clean shares from map and remove tempKey if no more searches going on
 				if err != nil {
 					ssHandler.concludeRetrieval(*passwordUID)
-					fmt.Println(err)
+					ssHandler.communicateError(err)
 				}
 				//decrypting secret
-				clearPassword, err := ssHandler.decryptPassword(*passwordUID, secret)
+				clearPasswordBytes, err := ssHandler.decryptPassword(*passwordUID, secret)
 				ssHandler.concludeRetrieval(*passwordUID)
 				if err != nil {
-					fmt.Println(err)
+					ssHandler.communicateError(err)
 				}
-				fmt.Println((string(clearPassword)))
+				clearPassword := string(clearPasswordBytes)
+				ssHandler.ctx.GUImessageChannel <- &core.GUIPacket{Password: &clearPassword}
+				fmt.Println(clearPassword)
 				return
 			}
 		case <-time.After(1 * time.Second):
 			budget = 2 * budget
 			if budget > 256 {
-				fmt.Println("Aborting Search: Maximum budget exhausted...")
+				ssHandler.communicateError(errors.New("Aborting Search: Maximum budget exhausted"))
 				return
 			}
 			go ssHandler.forwardSearchRequest(ssHandler.ctx.Address.String(), shareRequest, budget)

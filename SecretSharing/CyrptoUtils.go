@@ -176,6 +176,7 @@ func (ssHandler *SSHandler) encryptShares(masterKey, passwordUID string, replica
 
 		publicShares = append(publicShares, ssHandler.NewPublic(shareUID, origin, encryptedShare))
 		ssHandler.storeExtraInfo(shareUID, salt, nonce)
+		ssHandler.updateConfirmationMap(origin, shareUID)
 	}
 
 	return publicShares, nil
@@ -226,6 +227,10 @@ func (ssHandler *SSHandler) openShareAndUpdate(passwordUID, masterKey string, pu
 
 	if strings.Compare(sender, secretShare.SentTo) != 0 {
 		return errors.New("Malicious share received")
+	}
+
+	if _, exists := ssHandler.requestedPasswordStatus[passwordUID]; !exists {
+		return nil
 	}
 
 	if _, exists := ssHandler.requestedPasswordStatus[passwordUID][secretShare.ReplicateID]; !exists {

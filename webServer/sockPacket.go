@@ -17,6 +17,10 @@ type sockPacket struct {
 	Filename    string `json:"filename"`
 	Metahash    string `json:"metahash"`
 	Keywords    string `json:"keywords"`
+	Account     string `json:"account"`
+	Username    string `json:"username"`
+	MasterKey   string `json:"masterKey"`
+	Password    string `json:"password"`
 }
 
 //Creates peerPackets for sending to the client
@@ -45,6 +49,14 @@ func processGUIPacket(incomingPacket core.GUIPacket) (*sockPacket, error) {
 		packet.Type = "SearchMatch"
 		packet.Filename = incomingPacket.SearchResult.FileName
 		packet.Metahash = hex.EncodeToString(incomingPacket.SearchResult.MetafileHash)
+		return packet, nil
+	case core.PASSWORD_RETRIEVE:
+		packet.Type = "PasswordResult"
+		packet.Password = *incomingPacket.Password
+		return packet, nil
+	case core.PASSWORD_OP_RESULT:
+		packet.Type = "PassowrdOpResult"
+		packet.Message = *incomingPacket.PasswordOpResult
 		return packet, nil
 	}
 	return nil, errors.New("Corrupt Packet received")

@@ -1,0 +1,28 @@
+{
+	"manifest_version": 2,
+	
+	"name": "Keyster",
+	"description": "Decentralized Password Manager Extension. Binds to a gossiper instance running locally and offers decentralized password storage.",
+	"version": "1.0.0",
+	
+	"icons": {
+		"128": "icons/icon128.png"
+	},
+	
+	"permissions": [
+		"activeTab",
+		"storage",
+        "tabs"
+	],
+	
+	
+	"background": {
+		"scripts": ["background.js"],
+		"persistent": true
+	  },
+	"browser_action": {
+		"default_icon": "icons/icon48.png",
+		"default_title": "Keyster",
+		"default_popup": "popup.html"
+	}
+}

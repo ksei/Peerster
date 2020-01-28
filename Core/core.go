@@ -7,20 +7,22 @@ import (
 )
 
 const (
-	SIMPLE_MESSAGE    = 1
-	RUMOUR_MESSAGE    = 2
-	STATUS_PACKET     = 3
-	PRIVATE_MESSAGE   = 4
-	DATA_REQUEST      = 5
-	DATA_REPLY        = 6
-	SEARCH_REQUEST    = 7
-	SEARCH_REPLY      = 8
-	FILE_INDEXING     = 9
-	TLC_MESSAGE       = 10
-	TLC_ACK           = 11
-	PASSWORD_INSERT   = 12
-	PASSWORD_RETRIEVE = 13
-	UNKNOWN           = -1
+	SIMPLE_MESSAGE     = 1
+	RUMOUR_MESSAGE     = 2
+	STATUS_PACKET      = 3
+	PRIVATE_MESSAGE    = 4
+	DATA_REQUEST       = 5
+	DATA_REPLY         = 6
+	SEARCH_REQUEST     = 7
+	SEARCH_REPLY       = 8
+	FILE_INDEXING      = 9
+	TLC_MESSAGE        = 10
+	TLC_ACK            = 11
+	PASSWORD_INSERT    = 12
+	PASSWORD_RETRIEVE  = 13
+	PASSWORD_OP_RESULT = 14
+	PASSWORD_DELETE    = 15
+	UNKNOWN            = -1
 )
 
 //Message struct for client-gossiper communicaiton
@@ -35,6 +37,7 @@ type Message struct {
 	NewPassword *string
 	AccountURL  *string
 	UserName    *string
+	DeleteUser  *string
 }
 
 //SimpleMessage structure
@@ -183,10 +186,12 @@ type InternalPacket struct {
 
 //GUIPacket handles outgoing communication to the webServer
 type GUIPacket struct {
-	Sender       string
-	Rumour       *RumourMessage
-	Private      *PrivateMessage
-	SearchResult *SearchResult
+	Sender           string
+	Rumour           *RumourMessage
+	Private          *PrivateMessage
+	SearchResult     *SearchResult
+	Password         *string
+	PasswordOpResult *string
 }
 
 /*PublicShare represents the actual data structure to be transmitted inside a gossip packet
@@ -201,6 +206,7 @@ type PublicShare struct {
 	UID          string
 	SecuredShare []byte
 	Requested    bool
+	Confirmation bool
 }
 
 //ShareRequest serves as a struct designated for sending requests in an expanding ring manner, in order to reconstruct a password through received shares
@@ -253,14 +259,12 @@ func (m *Message) GetType(simpleMode bool) int {
 		return SEARCH_REQUEST
 	} else if m.MasterKey != nil && m.NewPassword != nil {
 		return PASSWORD_INSERT
-	} else if m.MasterKey != nil && m.NewPassword == nil {
+	} else if m.MasterKey != nil && m.NewPassword == nil && m.UserName != nil {
 		return PASSWORD_RETRIEVE
+	} else if m.MasterKey != nil && m.NewPassword == nil && m.DeleteUser != nil {
+		return PASSWORD_DELETE
 	} else if m.Destination != nil {
 		return PRIVATE_MESSAGE
-	} else if m.MasterKey != nil && m.NewPassword != nil {
-		return PASSWORD_INSERT
-	} else if m.MasterKey != nil && m.NewPassword == nil {
-		return PASSWORD_RETRIEVE
 	} else {
 		return RUMOUR_MESSAGE
 	}
@@ -287,6 +291,12 @@ func (gp *GUIPacket) GetType() int {
 	}
 	if gp.SearchResult != nil {
 		return SEARCH_REPLY
+	}
+	if gp.Password != nil {
+		return PASSWORD_RETRIEVE
+	}
+	if gp.PasswordOpResult != nil {
+		return PASSWORD_OP_RESULT
 	}
 	return UNKNOWN
 }

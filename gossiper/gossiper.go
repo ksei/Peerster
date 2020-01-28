@@ -90,6 +90,8 @@ func (g *Gossiper) waitForIncomingClientMessage() {
 			go g.shamirHandler.HandlePasswordRetrieval(*cMessage.MasterKey, *cMessage.AccountURL, *cMessage.UserName)
 		case core.PASSWORD_INSERT:
 			go g.shamirHandler.HandlePasswordInsert(*cMessage.MasterKey, *cMessage.AccountURL, *cMessage.UserName, *cMessage.NewPassword)
+		case core.PASSWORD_DELETE:
+			go g.shamirHandler.HandlePasswordDelete(*cMessage.MasterKey, *cMessage.AccountURL, *cMessage.DeleteUser)
 		case core.PRIVATE_MESSAGE:
 			fmt.Println("CLIENT MESSAGE", cMessage.Text, "dest", *(cMessage.Destination))
 			privateMessage := core.NewPrivateMessage(0, g.ctx.GetHopLimit(), cMessage.Text, g.ctx.Name, *cMessage.Destination)
