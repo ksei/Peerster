@@ -84,7 +84,7 @@ func (webServer *WebServer) handleConnections(w http.ResponseWriter, r *http.Req
 	// Make sure we close the connection when the function returns
 	defer ws.Close()
 	webServer.clients[ws] = true
-	webServer.initiatePeerView()
+	webServer.initiatePeerView(ws)
 	for {
 		var msg sockPacket
 		// Read in a new message as JSON and map it to a Message object
@@ -156,12 +156,10 @@ func (webServer *WebServer) handleSocketPackets() {
 		case "SearchRequest":
 			go webServer.handleNewSearchRequest(msg)
 		case "PasswordRequest":
-			fmt.Println(msg.Account, msg.Username, msg.MasterKey)
 			go webServer.handlePasswordRequest(msg)
 		case "StorePasswordRequest":
 			go webServer.handleStorePasswordRequest(msg)
 		case "PasswordDelete":
-			fmt.Println(msg.Account, msg.Username, msg.MasterKey, msg.Password)
 			go webServer.handlePasswordDelete(msg)
 		default:
 			go webServer.handleIncomingMessage(msg)
@@ -245,15 +243,25 @@ func (webServer *WebServer) updatePeerView(peerList []string) error {
 }
 
 //Initial Update of the Peer View-Model
-func (webServer *WebServer) initiatePeerView() error {
+func (webServer *WebServer) initiatePeerView(ws *websocket.Conn) error {
 	webServer.locker.Lock()
 	defer webServer.locker.Unlock()
 	for peer := range webServer.PeerViewState {
-		err := webServer.sendPeer(peer)
+		err := webServer.sendPeerToClient(peer, ws)
 		if err != nil {
 			return err
 		}
 		webServer.PeerViewState[peer] = true
+	}
+	return nil
+}
+
+func (webServer *WebServer) sendPeerToClient(peer string, ws *websocket.Conn) error {
+	packet := *createPeerPacket(peer)
+	packet.Me = webServer.ctx.Name
+	err := ws.WriteJSON(packet)
+	if err != nil {
+		return err
 	}
 	return nil
 }

@@ -34,7 +34,14 @@ $(document).ready(function () {
     });
 
     chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-        if (request.type == "passwordResult") {
+        if (request.type == "connectionSuccessful") {
+            $('#pleaseWaitPanel').hide()
+            $('#successMsg').text("Connected to Peerster Successfully.")
+            $('#successResult').show();
+            $('#errorResult').hide();
+            $('#resultPanel').show();
+        }
+        else if (request.type == "passwordResult") {
             $('#pleaseWaitPanel').hide();
             $('#userPanel').show();
             console.log(request.params.password)
@@ -72,13 +79,11 @@ $(document).ready(function () {
                 }
             });
 
-            chrome.runtime.sendMessage({ type: "checkConnection" }, function (response) {
-                //here response will be the word you want
-                if (response) {
-                    $('#bindButton').hide()
-                    $('#loginButton').show()
-                }
-            });
+            $('#pleaseWaitMessage').text("Binding to local Peerster...");
+            $('#bindingPanel').hide();
+            $('#pleaseWaitMessage').text("Binding to local Peerster...");
+            $('#pleaseWaitPanel').show();
+
         });
     });
 
@@ -129,7 +134,7 @@ $(document).ready(function () {
 
             $('#alertMsg').hide();
             $('#createPanel').hide();
-            $('#pleaseWaitMessage').val("Please wait while your password is being stored...");
+            $('#pleaseWaitMessage').text("Please wait while your password is being stored...");
             $('#pleaseWaitPanel').show();
         }
     });
@@ -179,7 +184,7 @@ $(document).ready(function () {
 
             $('#alertMsg').hide();
             $('#registerPanel').hide();
-            $('#pleaseWaitMessage').val("Please wait while your password is being retrieved...");
+            $('#pleaseWaitMessage').text("Please wait while your password is being retrieved...");
             $('#pleaseWaitPanel').show();
         }
     });

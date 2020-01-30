@@ -4,8 +4,8 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run 8 Peer Network",
-            "dependsOn": ["Run Alice", "Run Bob", "Run Charlie", "Run Daniel", "Run Eric", "Run Frank", "Run Gary", "Run Hulio"]
+            "label": "Run 8 Peer Network Topology A",
+            "dependsOn": ["Run Alice Topology A", "Run Bob Topology A", "Run Charlie Topology A", "Run Daniel Topology A", "Run Eric Topology A", "Run Frank Topology A", "Run Gary Topology A", "Run Hulio Topology A"]
         },
         {
             "label": "Run 7 Peer Network",
@@ -50,6 +50,46 @@
             "label" : "Run Hulio",
             "type" :  "shell",
             "command" : "go run main.go -gossipAddr='127.0.0.1:5007' -UIPort='8087' -name='Hulio' -peers='127.0.0.1:5006,127.0.0.1:5001'"
+        },
+        {
+            "label" : "Run Alice Topology A",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5000' -UIPort='8080' -name='Alice' -peers='127.0.0.1:5001'"
+        },
+        {
+            "label" : "Run Bob Topology A",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5001' -UIPort='8081' -name='Bob' -peers='127.0.0.1:5000,127.0.0.1:5002,127.0.0.1:5003'"
+        },
+        {
+            "label" : "Run Charlie Topology A",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5002' -UIPort='8082' -name='Charlie' -peers='127.0.0.1:5001,127.0.0.1:5004'"
+        },
+        {
+            "label" : "Run Daniel Topology A",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5003' -UIPort='8083' -name='Daniel' -peers='127.0.0.1:5001,127.0.0.1:5005'"
+        },
+        {
+            "label" : "Run Eric Topology A",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5004' -UIPort='8084' -name='Eric' -peers='127.0.0.1:5002,127.0.0.1:5006'"
+        },
+        {
+            "label" : "Run Frank Topology A",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5005' -UIPort='8085' -name='Frank' -peers='127.0.0.1:5003,127.0.0.1:5006'"
+        },
+        {
+            "label" : "Run Gary Topology A",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5006' -UIPort='8086' -name='Gary' -peers='127.0.0.1:5005,127.0.0.1:5004,127.0.0.1:5007'"
+        },
+        {
+            "label" : "Run Hulio Topology A",
+            "type" :  "shell",
+            "command" : "go run main.go -gossipAddr='127.0.0.1:5007' -UIPort='8087' -name='Hulio' -peers='127.0.0.1:5006'"
         },
     ]
 }

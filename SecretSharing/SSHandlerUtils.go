@@ -158,7 +158,6 @@ func (ssHandler *SSHandler) concludeRetrieval(passwordUID string) {
 	defer ssHandler.ssLocker.Unlock()
 
 	delete(ssHandler.requestedPasswordStatus, passwordUID)
-	fmt.Println(len(ssHandler.requestedPasswordStatus[passwordUID]))
 	if len(ssHandler.requestedPasswordStatus) == 0 {
 		ssHandler.tempKeyStorage = ""
 	}

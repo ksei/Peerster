@@ -7,7 +7,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       sendResponse();
     }
     else if (request.type == "checkConnection") {
-        console.log(connected)
         sendResponse(connected);
     }
     else if (request.type == "requestPassword"){
@@ -47,8 +46,12 @@ function createWebSocketConnection(address) {
 //Make a websocket connection with the server.
 function connect(host) {
     websocket = new WebSocket(host);
-    connected = true;
     websocket.onmessage = function (event) {
+        if (!connected){
+            connected = true;
+            chrome.runtime.sendMessage({ type: "connectionSuccessful" }, function (response) {
+            });
+        }
         var received_msg = JSON.parse(event.data);
         if (received_msg.type == "PasswordResult"){
             console.log(received_msg.password)
@@ -63,12 +66,7 @@ function connect(host) {
 
     //If the websocket is closed but the session is still active, create new connection again
     websocket.onclose = function() {
-        websocket = undefined;
-        chrome.storage.local.get(['demo_session'], function(data) {
-            if (data.demo_session) {
-                createWebSocketConnection();
-            }
-        });
+        connected = false;
     };
 }
 

@@ -59,7 +59,7 @@ func (ssHandler *SSHandler) HandlePasswordInsert(masterKey, account, username, n
 
 	//1. Assign Password UID and check if already inserted (for now we can start without supporting password upates)
 	if _, exists := ssHandler.passwordExists(masterKey, account, username); exists {
-		ssHandler.communicateError(errors.New("A password is already registered for the provided credentials. Updates are not supported at the moment"))
+		ssHandler.communicateError(errors.New("A password is already registered for the provided credentials. Please delete your old password first"))
 		return
 	}
 	passwordUID, err := ssHandler.registerPassword(masterKey, account, username)
