@@ -1,3 +1,7 @@
+/*
+Created and Developed by: Ksandros Apostoli
+Part of the course project for Decentralized System Engineering
+*/
 package SecretSharing
 
 import (
