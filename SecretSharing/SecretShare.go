@@ -5,7 +5,7 @@ Part of the course project for Decentralized System Engineering
 package SecretSharing
 
 import (
-	"github.com/dedis/protobuf"
+	"go.dedis.ch/protobuf"
 )
 
 /*SecretShare represents a tuple of:

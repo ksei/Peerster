@@ -13,8 +13,8 @@ import (
 
 	core "github.com/ksei/Peerster/Core"
 
-	"github.com/dedis/protobuf"
 	"github.com/gorilla/websocket"
+	"go.dedis.ch/protobuf"
 )
 
 const localAddress string = "127.0.0.1"

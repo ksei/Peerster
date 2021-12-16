@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dedis/protobuf"
+	"go.dedis.ch/protobuf"
 )
 
 //Context carrying contextual information on the state of the gossiper

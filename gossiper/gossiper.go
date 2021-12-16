@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dedis/protobuf"
 	core "github.com/ksei/Peerster/Core"
 	mng "github.com/ksei/Peerster/Mongering"
 	"github.com/ksei/Peerster/SecretSharing"
 	tlc "github.com/ksei/Peerster/TLC"
 	fh "github.com/ksei/Peerster/fileSharing"
 	mh "github.com/ksei/Peerster/messageHandling"
+	"go.dedis.ch/protobuf"
 )
 
 const localAddress = "127.0.0.1"
